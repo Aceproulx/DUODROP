@@ -2,7 +2,9 @@
    DUODROP — Administrator Dashboard
    ================================================================ */
 
-function renderAdminDashboard() {
+let _adminData = { stats: null, users: [], songs: [], pending: [] };
+
+async function renderAdminDashboard() {
   const cu = DB.Users.current();
   const el = document.getElementById('admin-dashboard-content');
   if (!el) return;
@@ -12,39 +14,56 @@ function renderAdminDashboard() {
     return;
   }
 
-  const allUsers   = DB.Users.all();
-  const allSongs   = DB.Songs.all();
-  const allArtists = DB.Artists.all();
-  const stats      = DB.Stats.total();
-  const pending    = allSongs.filter(s => s.status === 'pending');
-  const uploads    = DB.get().uploads || [];
+  el.innerHTML = `<div class="empty-state"><div class="google-spinner" style="border-color:var(--accent);border-top-color:transparent;width:32px;height:32px;margin:0 auto 16px;"></div><p>Loading admin data...</p></div>`;
 
-  el.innerHTML = `
-    <div class="admin-stats">
-      <div class="admin-stat"><div class="aval">${allUsers.length}</div><div class="albl">Total Users</div></div>
-      <div class="admin-stat"><div class="aval">${allArtists.length}</div><div class="albl">Artists</div></div>
-      <div class="admin-stat"><div class="aval">${allSongs.length}</div><div class="albl">Songs</div></div>
-      <div class="admin-stat"><div class="aval">${pending.length}</div><div class="albl">Pending Songs</div></div>
-      <div class="admin-stat"><div class="aval">${fmtNum(stats.plays)}</div><div class="albl">Total Plays</div></div>
-      <div class="admin-stat"><div class="aval">${allUsers.filter(u=>u.status==='banned').length}</div><div class="albl">Banned Users</div></div>
-    </div>
+  try {
+    const [st, usr, sng, pnd] = await Promise.all([
+      API.admin.stats(),
+      API.admin.users(),
+      API.admin.allSongs(),
+      API.admin.pendingSongs()
+    ]);
+    
+    _adminData.stats = st || {};
+    _adminData.users = usr?.users || [];
+    _adminData.songs = sng?.songs || [];
+    _adminData.pending = pnd?.songs || [];
+    
+    const allUsers   = _adminData.users;
+    const allSongs   = _adminData.songs;
+    const allArtists = allUsers.filter(u => u.role === 'artist');
+    const pending    = _adminData.pending;
+    const stats      = _adminData.stats;
 
-    <div class="admin-tabs">
-      <button class="admin-tab active" onclick="adminTab(this,'admin-users')">👥 Users</button>
-      <button class="admin-tab" onclick="adminTab(this,'admin-songs')">🎵 Songs</button>
-      <button class="admin-tab" onclick="adminTab(this,'admin-pending')">⏳ Pending (${pending.length})</button>
-    </div>
+    el.innerHTML = `
+      <div class="admin-stats">
+        <div class="admin-stat"><div class="aval">${stats.totalUsers || 0}</div><div class="albl">Total Users</div></div>
+        <div class="admin-stat"><div class="aval">${stats.totalArtists || 0}</div><div class="albl">Artists</div></div>
+        <div class="admin-stat"><div class="aval">${stats.totalSongs || 0}</div><div class="albl">Approved Songs</div></div>
+        <div class="admin-stat"><div class="aval">${stats.pendingSongs || 0}</div><div class="albl">Pending Songs</div></div>
+        <div class="admin-stat"><div class="aval">${fmtNum(stats.totalPlays || 0)}</div><div class="albl">Total Plays</div></div>
+        <div class="admin-stat"><div class="aval">${stats.bannedUsers || 0}</div><div class="albl">Banned Users</div></div>
+      </div>
 
-    <div id="admin-users">
-      ${renderAdminUsers()}
-    </div>
-    <div id="admin-songs" style="display:none;">
-      ${renderAdminSongs()}
-    </div>
-    <div id="admin-pending" style="display:none;">
-      ${renderAdminPending()}
-    </div>
-  `;
+      <div class="admin-tabs">
+        <button class="admin-tab active" onclick="adminTab(this,'admin-users')">👥 Users</button>
+        <button class="admin-tab" onclick="adminTab(this,'admin-songs')">🎵 Songs</button>
+        <button class="admin-tab" onclick="adminTab(this,'admin-pending')">⏳ Pending (${pending.length})</button>
+      </div>
+
+      <div id="admin-users">
+        ${renderAdminUsers()}
+      </div>
+      <div id="admin-songs" style="display:none;">
+        ${renderAdminSongs()}
+      </div>
+      <div id="admin-pending" style="display:none;">
+        ${renderAdminPending()}
+      </div>
+    `;
+  } catch (err) {
+    el.innerHTML = `<div class="empty-state"><div class="es-icon">❌</div><p>Error loading admin data: ${err.message}</p></div>`;
+  }
 }
 
 function adminTab(btn, panelId) {
@@ -57,7 +76,7 @@ function adminTab(btn, panelId) {
 }
 
 function renderAdminUsers() {
-  const users = DB.Users.all();
+  const users = _adminData.users;
   if (!users.length) return '<p class="dim">No users yet.</p>';
   return `
     <div class="admin-table-wrap">
@@ -75,8 +94,7 @@ function renderAdminUsers() {
               <td>${u.createdAt ? new Date(u.createdAt).toLocaleDateString() : '—'}</td>
               <td>
                 ${u.role !== 'admin' ? `
-                  <button class="btn btn-sm btn-outline" onclick="adminBanUser('${u.id}')">${u.status === 'banned' ? '✅ Unban' : '🚫 Ban'}</button>
-                  <button class="btn btn-sm btn-ghost" onclick="adminDeleteUser('${u.id}')">🗑</button>
+                  <button class="btn btn-sm btn-outline" onclick="adminBanUser('${u.id}', ${u.status === 'banned' ? 'false' : 'true'})">${u.status === 'banned' ? '✅ Unban' : '🚫 Ban'}</button>
                 ` : '<span class="dim">—</span>'}
               </td>
             </tr>
@@ -87,7 +105,7 @@ function renderAdminUsers() {
 }
 
 function renderAdminSongs() {
-  const songs = DB.Songs.all();
+  const songs = _adminData.songs;
   if (!songs.length) return '<p class="dim">No songs yet.</p>';
   return `
     <div class="admin-table-wrap">
@@ -97,7 +115,7 @@ function renderAdminSongs() {
         </tr></thead>
         <tbody>
           ${songs.map(s => {
-            const artist = DB.Users.find(s.artistId);
+            const artist = _adminData.users.find(u => u.id === s.artistId);
             return `
               <tr>
                 <td><strong>${s.title}</strong></td>
@@ -107,7 +125,7 @@ function renderAdminSongs() {
                 <td><span class="status-badge ${s.status || 'pending'}">${s.status || 'pending'}</span></td>
                 <td>
                   ${s.status !== 'approved' ? `<button class="btn btn-sm btn-green" onclick="adminApproveSong('${s.id}')">✅ Approve</button>` : ''}
-                  <button class="btn btn-sm btn-danger" onclick="adminRemoveSong('${s.id}')">🗑 Remove</button>
+                  ${s.status !== 'rejected' ? `<button class="btn btn-sm btn-danger" onclick="adminRejectSong('${s.id}')">❌ Reject</button>` : ''}
                 </td>
               </tr>`;
           }).join('')}
@@ -117,7 +135,7 @@ function renderAdminSongs() {
 }
 
 function renderAdminPending() {
-  const pending = DB.Songs.all().filter(s => s.status === 'pending');
+  const pending = _adminData.pending;
   if (!pending.length) return '<div class="empty-state"><div class="es-icon">✅</div><p>No pending songs — all clear!</p></div>';
   return `
     <div class="admin-table-wrap">
@@ -127,7 +145,7 @@ function renderAdminPending() {
         </tr></thead>
         <tbody>
           ${pending.map(s => {
-            const artist = DB.Users.find(s.artistId);
+            const artist = _adminData.users.find(u => u.id === s.artistId);
             return `
               <tr>
                 <td><strong>${s.title}</strong></td>
@@ -146,55 +164,34 @@ function renderAdminPending() {
     </div>`;
 }
 
-function adminBanUser(userId) {
-  const u = DB.Users.find(userId);
-  if (!u) return;
-  const newStatus = u.status === 'banned' ? 'active' : 'banned';
-  DB.Users.update(userId, { status: newStatus });
-  showToast(newStatus === 'banned' ? `🚫 ${u.username} banned` : `✅ ${u.username} unbanned`, newStatus === 'banned' ? 'error' : 'success');
-  renderAdminDashboard();
+async function adminBanUser(userId, banStatus) {
+  if (!confirm(banStatus ? \`Ban this user?\` : \`Unban this user?\`)) return;
+  try {
+    await window.API.admin.banUser(userId, banStatus);
+    showToast(banStatus ? \`🚫 User banned\` : \`✅ User unbanned\`, banStatus ? 'error' : 'success');
+    renderAdminDashboard();
+  } catch (err) {
+    showToast(err.message, 'error');
+  }
 }
 
-function adminDeleteUser(userId) {
-  const u = DB.Users.find(userId);
-  if (!u) return;
-  if (!confirm(`Delete user "${u.username}"? This cannot be undone.`)) return;
-  const data = DB.get();
-  data.users = data.users.filter(x => x.id !== userId);
-  data.songs = data.songs.filter(s => s.artistId !== userId);
-  DB.save();
-  showToast(`🗑 User ${u.username} deleted`, 'info');
-  renderAdminDashboard();
+async function adminApproveSong(songId) {
+  try {
+    await window.API.admin.approveSong(songId, 'approved');
+    showToast(\`✅ Song approved and published!\`, 'success');
+    renderAdminDashboard();
+  } catch (err) {
+    showToast(err.message, 'error');
+  }
 }
 
-function adminApproveSong(songId) {
-  const s = DB.Songs.find(songId);
-  if (!s) return;
-  const data = DB.get();
-  const idx  = data.songs.findIndex(x => x.id === songId);
-  if (idx >= 0) { data.songs[idx].status = 'approved'; DB.save(); }
-  showToast(`✅ "${s.title}" approved and published!`, 'success');
-  renderAdminDashboard();
-}
-
-function adminRejectSong(songId) {
-  const s = DB.Songs.find(songId);
-  if (!s) return;
-  if (!confirm(`Reject and remove "${s.title}"?`)) return;
-  const data = DB.get();
-  data.songs = data.songs.filter(x => x.id !== songId);
-  DB.save();
-  showToast(`❌ "${s.title}" rejected and removed`, 'error');
-  renderAdminDashboard();
-}
-
-function adminRemoveSong(songId) {
-  const s = DB.Songs.find(songId);
-  if (!s) return;
-  if (!confirm(`Remove song "${s.title}"? This is permanent.`)) return;
-  const data = DB.get();
-  data.songs = data.songs.filter(x => x.id !== songId);
-  DB.save();
-  showToast(`🗑 "${s.title}" removed`, 'info');
-  renderAdminDashboard();
+async function adminRejectSong(songId) {
+  if (!confirm(\`Reject this song?\`)) return;
+  try {
+    await window.API.admin.approveSong(songId, 'rejected');
+    showToast(\`❌ Song rejected\`, 'error');
+    renderAdminDashboard();
+  } catch (err) {
+    showToast(err.message, 'error');
+  }
 }
