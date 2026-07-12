@@ -2,6 +2,10 @@
   "version": 2,
   "rewrites": [
     {
+      "source": "/__/auth/(.*)",
+      "destination": "https://duodrop.firebaseapp.com/__/auth/$1"
+    },
+    {
       "source": "/api/(.*)",
       "destination": "/server/index.js"
     },

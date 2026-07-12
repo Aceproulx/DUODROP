@@ -7,7 +7,7 @@
 // ── Firebase client config (safe to be in frontend code) ────────
 const _firebaseConfig = {
   apiKey:            'AIzaSyAvDlW4-OZFhKeDRyFySJmmxvjatsWVepo',
-  authDomain:        'duodrop.firebaseapp.com',
+  authDomain:        window.location.hostname === 'localhost' ? 'duodrop.firebaseapp.com' : window.location.host,
   databaseURL:       'https://duodrop-default-rtdb.firebaseio.com',
   projectId:         'duodrop',
   storageBucket:     'duodrop.firebasestorage.app',
