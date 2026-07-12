@@ -130,9 +130,19 @@ router.post('/', async (req, res) => {
         /* 4a. Generate Cloudinary artwork (text overlay — no upload needed) */
         const artworkUrl = cloudinaryPlaceholder(a.name, title, color);
 
-        /* 4b. We don't have real audio files for demo songs.
-               We set audioUrl to empty; admin can upload real audio later.
-               The song still appears in listings. */
+        /* 4b. Upload a placeholder audio file to Cloudinary so it's a real Cloudinary song */
+        let audioUrl = '';
+        try {
+          // Cloudinary can upload directly from a public URL!
+          const uploadRes = await cloudinary.uploader.upload('https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3', {
+            resource_type: 'video',
+            folder: 'duodrop/seed_audio'
+          });
+          audioUrl = uploadRes.secure_url;
+        } catch (err) {
+          console.error('Failed to upload demo song to Cloudinary:', err.message);
+        }
+
         const song = {
           title, genre,
           desc:      `An amazing track from ${a.name}. Feel the Malawian rhythm.`,
@@ -141,7 +151,7 @@ router.post('/', async (req, res) => {
           price:     isPrem ? 500 : 0,
           txref:     'DEMO-' + uid(),
           artwork:   artworkUrl,
-          audioUrl:  '',       // No real audio for demo seeds
+          audioUrl,
           duration:  `${2 + Math.floor(Math.random() * 3)}:${String(Math.floor(Math.random() * 60)).padStart(2, '0')}`,
           artistId:  localId,
           artist:    a.username,
