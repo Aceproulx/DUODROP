@@ -2477,7 +2477,11 @@ a:hover {
   width: 100%;
   max-height: 92vh;
   overflow-y: auto;
+  scrollbar-width: none; /* Firefox */
   animation: slideUp .25s ease;
+}
+.modal::-webkit-scrollbar {
+  display: none; /* Chrome/Safari/Edge */
 }
 
 @keyframes slideUp { 
@@ -3324,7 +3328,7 @@ a:hover {
 @keyframes google-spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
 .turnstile-wrap {
-  margin: 16px 0;
+  margin: 0 0 16px 0;
   display: flex;
   justify-content: center;
   min-height: 65px;
