@@ -5,21 +5,26 @@
    ================================================================= */
 
 // ── Firebase client config (safe to be in frontend code) ────────
-const _firebaseConfig = {
-  apiKey:            'AIzaSyAvDlW4-OZFhKeDRyFySJmmxvjatsWVepo',
-  authDomain:        window.location.hostname === 'localhost' ? 'duodrop.firebaseapp.com' : window.location.host,
-  databaseURL:       'https://duodrop-default-rtdb.firebaseio.com',
-  projectId:         'duodrop',
-  storageBucket:     'duodrop.firebasestorage.app',
-  messagingSenderId: '462525737691',
-  appId:             '1:462525737691:web:2b5e1538b1c73a6ab83afe',
-};
+let _firebaseConfig = null;
+
+async function fetchFirebaseConfig() {
+  if (_firebaseConfig) return _firebaseConfig;
+  try {
+    const res = await fetch('/api/config');
+    const data = await res.json();
+    _firebaseConfig = data.firebase;
+    return _firebaseConfig;
+  } catch (err) {
+    console.error('Failed to fetch Firebase config:', err);
+    return null;
+  }
+}
 
 // Lazy-init Firebase app (avoids duplicate app error on hot reload)
 let _firebaseApp  = null;
 let _firebaseAuth = null;
 
-function _getFirebaseAuth() {
+async function _getFirebaseAuth() {
   if (_firebaseAuth) return _firebaseAuth;
 
   if (!window.firebase) {
@@ -27,8 +32,11 @@ function _getFirebaseAuth() {
     return null;
   }
 
+  const config = await fetchFirebaseConfig();
+  if (!config) throw new Error('Missing Firebase configuration');
+
   if (!firebase.apps || firebase.apps.length === 0) {
-    _firebaseApp = firebase.initializeApp(_firebaseConfig);
+    _firebaseApp = firebase.initializeApp(config);
   } else {
     _firebaseApp = firebase.app();
   }
@@ -49,7 +57,7 @@ async function signInWithGoogle(role = 'fan') {
       b.innerHTML = `<span class="google-spinner"></span> Connecting…`;
     });
 
-    const auth     = _getFirebaseAuth();
+    const auth     = await _getFirebaseAuth();
     if (!auth) throw new Error('Firebase Auth not available');
 
     const provider = new firebase.auth.GoogleAuthProvider();

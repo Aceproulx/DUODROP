@@ -165,10 +165,10 @@ function renderAdminPending() {
 }
 
 async function adminBanUser(userId, banStatus) {
-  if (!confirm(banStatus ? \`Ban this user?\` : \`Unban this user?\`)) return;
+  if (!confirm(banStatus ? `Ban this user?` : `Unban this user?`)) return;
   try {
     await window.API.admin.banUser(userId, banStatus);
-    showToast(banStatus ? \`🚫 User banned\` : \`✅ User unbanned\`, banStatus ? 'error' : 'success');
+    showToast(banStatus ? `🚫 User banned` : `✅ User unbanned`, banStatus ? 'error' : 'success');
     renderAdminDashboard();
   } catch (err) {
     showToast(err.message, 'error');
@@ -178,7 +178,7 @@ async function adminBanUser(userId, banStatus) {
 async function adminApproveSong(songId) {
   try {
     await window.API.admin.approveSong(songId, 'approved');
-    showToast(\`✅ Song approved and published!\`, 'success');
+    showToast(`✅ Song approved and published!`, 'success');
     renderAdminDashboard();
   } catch (err) {
     showToast(err.message, 'error');
@@ -186,10 +186,10 @@ async function adminApproveSong(songId) {
 }
 
 async function adminRejectSong(songId) {
-  if (!confirm(\`Reject this song?\`)) return;
+  if (!confirm(`Reject this song?`)) return;
   try {
     await window.API.admin.approveSong(songId, 'rejected');
-    showToast(\`❌ Song rejected\`, 'error');
+    showToast(`❌ Song rejected`, 'error');
     renderAdminDashboard();
   } catch (err) {
     showToast(err.message, 'error');
