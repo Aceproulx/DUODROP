@@ -1,0 +1,771 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+  
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DUODROP — Music for Malawi &amp; Beyond</title>
+
+<link rel="stylesheet" href="css/main.css">
+<link rel="stylesheet" href="css/player.css">
+<!-- Lucide Icons -->
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+<!-- Cloudflare Turnstile Captcha -->
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+<!-- Firebase SDK (for Google Sign-In) -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+</head>
+
+<body>
+
+<!-- ══ SIDEBAR ══════════════════════════════════════════════════ -->
+<aside id="sidebar" class="sidebar">
+
+  <div class="sidebar-brand">
+    <div class="brand-logo"><i data-lucide="disc-3"></i></div>
+    <div>
+      <div class="brand-name">DUODROP</div>
+      <div class="brand-tagline">Malawi's Music Hub</div>
+    </div>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-group-label">DISCOVER</div>
+    <a class="nav-link active" data-page="discover"  href="#"><span><i data-lucide="home"></i></span> Home</a>
+    <a class="nav-link"        data-page="trending"  href="#"><span><i data-lucide="flame"></i></span> Trending</a>
+    <a class="nav-link"        data-page="charts"    href="#"><span><i data-lucide="bar-chart-2"></i></span> Charts</a>
+    <a class="nav-link"        data-page="playlists" href="#"><span><i data-lucide="list-music"></i></span> Playlists</a>
+    <a class="nav-link"        data-page="artists"   href="#"><span><i data-lucide="mic-2"></i></span> Artists</a>
+    <a class="nav-link"        data-page="library"   href="#"><span><i data-lucide="library"></i></span> My Library</a>
+
+    <div class="nav-group-label">ARTIST ZONE</div>
+    <a class="nav-link" data-page="upload"    href="#"><span><i data-lucide="upload-cloud"></i></span> Upload Music</a>
+    <a class="nav-link" data-page="dashboard" href="#"><span><i data-lucide="activity"></i></span> Analytics</a>
+    <a class="nav-link" data-page="earnings"  href="#"><span><i data-lucide="banknote"></i></span> Earnings</a>
+
+    <div class="nav-group-label">ACCOUNT</div>
+    <a class="nav-link" data-page="profile"  href="#"><span><i data-lucide="user-circle"></i></span> My Profile</a>
+    <a class="nav-link" data-page="settings" href="#"><span><i data-lucide="settings"></i></span> Settings</a>
+    <a class="nav-link" id="admin-nav-link" data-page="admin" href="#" style="display:none;"><span><i data-lucide="shield"></i></span> Admin Panel</a>
+  </nav>
+
+  <div class="sidebar-user" id="sidebar-user">
+    <div class="su-avatar" id="su-avatar">?</div>
+    <div class="su-info">
+      <div class="su-name"  id="su-name">Guest</div>
+      <div class="su-role"  id="su-role">Fan</div>
+    </div>
+    <button class="su-btn" onclick="openAuthModal()">Sign In</button>
+  </div>
+</aside>
+<div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
+
+
+<!-- ══ MAIN ═════════════════════════════════════════════════ -->
+<div class="main-wrap">
+  <header class="topbar">
+    <button class="hamburger" onclick="toggleSidebar()"><i data-lucide="menu"></i></button>
+    <div class="topbar-search">
+      <input type="text" id="search-input" placeholder="Search songs, artists, genres…" oninput="handleSearch(this.value)" autocomplete="off">
+      <div id="search-dropdown" class="search-dd"></div>
+    </div>
+    <div class="topbar-right">
+      <button class="btn btn-accent btn-sm" onclick="showPage('upload')">+ Upload</button>
+      <button class="theme-btn" onclick="toggleTheme()" id="theme-btn" title="Toggle theme"><i data-lucide="moon"></i></button>
+      <div class="tb-avatar" id="tb-avatar" onclick="openAuthModal()">?</div>
+    </div>
+  </header>
+
+
+
+  <!-- ════ PAGE: DISCOVER ════ -->
+  <section class="page active" id="page-discover">
+    <div class="hero-banner">
+      <div class="hero-content">
+        <div class="hero-badge"> Malawi's Number one Music Platform</div>
+        <h1 class="hero-title">Discover the Sound<br>of <span class="hero-accent">Malawi</span></h1>
+        <p class="hero-sub">Stream, share, and support local artists. Upload your music and earn real kwacha.</p>
+        <div class="hero-btns">
+          <button class="btn btn-primary btn-lg" onclick="showPage('trending')">🔥 Trending Now</button>
+          <button class="btn btn-outline btn-lg" onclick="openAuthModal('register')">🎤 Join Free</button>
+        </div>
+        <div class="hero-stats">
+          <div class="hs"><span class="hs-val" id="hs-songs">0</span><span class="hs-lbl">Songs</span></div>
+          <div class="hs"><span class="hs-val" id="hs-artists">0</span><span class="hs-lbl">Artists</span></div>
+          <div class="hs"><span class="hs-val" id="hs-plays">0</span><span class="hs-lbl">Plays</span></div>
+        </div>
+      </div>
+      <div class="hero-visual">
+        <div class="vinyl-record" id="hero-vinyl">
+          <div class="vinyl-hole"></div>
+        </div>
+      </div>
+    </div>
+    <div class="page-content">
+      <div class="section">
+        <div class="section-hdr"><h2 class="section-title"><i data-lucide="flame"></i> Hot Right Now</h2><a href="#" onclick="showPage('trending')" class="see-all">See all →</a></div>
+        <div class="song-cards" id="hot-songs"></div>
+      </div>
+      <div class="section">
+        <div class="section-hdr"><h2 class="section-title"><i data-lucide="mic-2"></i> Featured Artists</h2><a href="#" onclick="showPage('artists')" class="see-all">See all →</a></div>
+        <div class="artist-scroll" id="featured-artists"></div>
+      </div>
+      <div class="section">
+        <div class="section-hdr"><h2 class="section-title"><i data-lucide="list-music"></i> Curated Playlists</h2></div>
+        <div class="playlist-scroll" id="curated-playlists"></div>
+      </div>
+      <div class="section">
+        <div class="section-hdr"><h2 class="section-title"><i data-lucide="sparkles"></i> New Releases</h2></div>
+        <div class="song-list" id="new-releases"></div>
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ════ PAGE: CHARTS ════ -->
+  <section class="page" id="page-charts">
+    <div class="page-content">
+      <div class="page-hdr"><h1><i data-lucide="bar-chart-2"></i> Music Charts</h1><p>Weekly, monthly and all-time rankings across Malawi</p></div>
+      <div id="charts-content"></div>
+    </div>
+  </section>
+
+
+  <!-- ════ PAGE: TRENDING ════ -->
+  <section class="page" id="page-trending">
+    <div class="page-content">
+      <div class="page-hdr"><h1><i data-lucide="flame"></i> Trending in Malawi</h1><p>The most played tracks this week</p></div>
+      <div class="genre-pills" id="genre-filter"></div>
+      <div class="song-list ranked" id="trending-list"></div>
+    </div>
+  </section>
+
+
+
+
+  <!-- ════ PAGE: PLAYLISTS ════ -->
+  <section class="page" id="page-playlists">
+    <div class="page-content">
+      <div class="page-hdr"><h1><i data-lucide="list-music"></i> Playlists</h1><p>Handcrafted vibes for every mood</p></div>
+      <div class="playlist-grid" id="playlists-grid"></div>
+    </div>
+  </section>
+
+
+
+  <!-- ════ PAGE: ARTISTS ════ -->
+  <section class="page" id="page-artists">
+    <div class="page-content">
+      <div class="page-hdr"><h1><i data-lucide="mic-2"></i> Artists</h1><p>Discover talent from Malawi and beyond</p></div>
+      <div class="artist-grid" id="artists-grid"></div>
+    </div>
+  </section>
+
+
+
+  <!-- ════ PAGE: ARTIST PROFILE ════ -->
+  <section class="page" id="page-artist-profile">
+    <div id="artist-profile-content" class="page-content"></div>
+  </section>
+
+
+
+  <!-- ════ PAGE: LIBRARY ════ -->
+  <section class="page" id="page-library">
+    <div class="page-content">
+      <div class="page-hdr"><h1><i data-lucide="library"></i> My Library</h1><p>Your liked songs, followed artists, and history</p></div>
+      <div class="lib-tabs">
+        <button class="lib-tab active" onclick="showLibTab(this,'liked')"><i data-lucide="heart"></i> Liked Songs</button>
+        <button class="lib-tab" onclick="showLibTab(this,'following')"><i data-lucide="mic-2"></i> Following</button>
+        <button class="lib-tab" onclick="showLibTab(this,'history')"><i data-lucide="clock"></i> History</button>
+        <button class="lib-tab" onclick="showLibTab(this,'shared')"><i data-lucide="share-2"></i> Shared Links</button>
+      </div>
+      <div id="library-content"></div>
+    </div>
+  </section>
+
+
+
+  <!-- ════ PAGE: UPLOAD ════ -->
+  <section class="page" id="page-upload">
+    <div class="page-content">
+      <div class="page-hdr"><h1><i data-lucide="upload-cloud"></i> Upload Your Music</h1><p>Share your Music with Malawi and the world</p></div>
+      <div class="payment-notice">
+        <div class="pn-icon"><i data-lucide="credit-card"></i></div>
+        <div class="pn-text">
+          <strong>Upload Fee: MK 5,000 per song</strong><br>
+          Pay to <strong>National Bank Account: 1014013314</strong> via Airtel Money, 
+          Mpamba or bank transfer. Enter your transaction reference below to verify payment.
+        </div>
+
+
+      </div>
+      <div class="upload-layout">
+        <div class="upload-form-box">
+          <form id="upload-form" onsubmit="submitUpload(event)" novalidate>
+            <div class="form-section">📋 Song Information</div>
+            <div class="fg">
+              <label>Song Title *</label>
+              <input type="text" id="u-title" placeholder="Enter your song title">
+              <div class="fe" id="err-u-title"></div>
+            </div>
+
+            <div class="form-row">
+              <div class="fg">
+                <label>Genre *</label>
+                <select id="u-genre">
+                  <option value="">Select genre…</option>
+
+                  <option>Afrobeats</option><option>Gospel</option><option>Hip-Hop</option>
+
+                  <option>R&amp;B / Soul</option><option>Reggae</option><option>Malawi Pop</option>
+
+                  <option>Praise &amp; Worship</option><option>Traditional</option>
+
+                  <option>Dance / EDM</option><option>Other</option>
+
+                </select>
+                <div class="fe" id="err-u-genre"></div>
+              </div>
+              <div class="fg">
+                <label>Content Type</label>
+                <select id="u-type">
+                  <option value="free">Free — everyone can stream</option>
+                  <option value="premium">Premium — paid download</option>
+                </select>
+              </div>
+            </div>
+            <div class="fg">
+              <label>Description</label>
+              <textarea id="u-desc" rows="3" placeholder="Tell fans about this track…"></textarea>
+              <div class="fe" id="err-u-desc"></div>
+            </div>
+            <div class="fg">
+              <label>Tags <span style="opacity:.5;">(comma separated)</span></label>
+              <input type="text" id="u-tags" placeholder="love, summer, 2024, malawi">
+            </div>
+            <div class="fg">
+              <label>Price (MK) — for Premium</label>
+              <input type="number" id="u-price" placeholder="0 = free" min="0">
+            </div>
+            <div class="form-section"><i data-lucide="music"></i> Audio File</div>
+            <div class="file-drop" id="audio-drop" onclick="document.getElementById('u-audio').click()">
+              <div class="fd-content" id="audio-fd-content">
+                <div class="fd-icon"><i data-lucide="music"></i></div>
+                <div class="fd-label">Drop audio here or <span>click to browse</span></div>
+                <div class="fd-hint">MP3, WAV, FLAC, AAC — max 50 MB</div>
+              </div>
+            </div>
+
+
+            <input type="file" id="u-audio" accept="audio/*" style="display:none" onchange="handleAudioFile(this)">
+            <div class="fe" id="err-u-audio"></div>
+            <div class="form-section"><i data-lucide="image"></i> Cover Artwork</div>
+
+            <div class="file-drop artwork-drop" id="art-drop" onclick="document.getElementById('u-art').click()">
+              <div id="art-preview-inner">
+                <div class="fd-icon"><i data-lucide="image"></i></div>
+                <div class="fd-label">Click to upload artwork</div>
+                <div class="fd-hint">JPG or PNG — min 500×500px</div>
+              </div>
+            </div>
+
+
+            <input type="file" id="u-art" accept="image/*" style="display:none" onchange="handleArtwork(this)">
+            <div class="fe" id="err-u-art"></div>
+            <div class="form-section"><i data-lucide="credit-card"></i> Payment Verification</div>
+
+
+            <div class="form-row">
+              <div class="fg">
+                <label>Payment Method</label>
+                <select id="u-paymethod">
+                  <option value="national-bank">National Bank (1014013314)</option>
+                  <option value="airtel">Airtel Money(0984 076 531)</option>
+                  <option value="mpamba">TNM Mpamba (0888 240 630)</option>
+                </select>
+              </div>
+
+
+              <div class="fg">
+                <label>Amount Paid (MK) *</label>
+                <input type="number" id="u-amount" placeholder="5000" min="5000">
+                <div class="fe" id="err-u-amount"></div>
+              </div>
+            </div>
+
+
+            <div class="fg">
+              <label>Transaction Reference *</label>
+              <input type="text" id="u-txref" placeholder="e.g. NBM-20240601-123456">
+              <div class="fe" id="err-u-txref"></div>
+            </div>
+
+            <div class="fg">
+              <label class="cb-label">
+                <input type="checkbox" id="u-agree">
+                I confirm this is my original work and I have paid MK 5,000 to National Bank (1014013314)
+              </label>
+              <div class="fe" id="err-u-agree"></div>
+            </div>
+
+
+            <div id="upload-progress" style="display:none;">
+              <div class="prog-bar"><div class="prog-fill" id="upload-bar-fill"></div></div>
+              <div class="prog-text" id="upload-prog-text">Uploading…</div>
+            </div>
+
+
+            <button type="submit" class="btn btn-primary btn-block btn-lg" style="margin-top:16px;">🚀 Submit Upload</button>
+            <div class="zod-status" id="zod-status"></div>
+          </form>
+        </div>
+
+
+        <div class="upload-info-box">
+          <div class="info-card">
+            <div class="section-hdr"><h2 class="section-title"><i data-lucide="clipboard-list"></i> Upload Guidelines</h2></div>
+            <ul class="check-list">
+              <li>✅ Audio must be your original work</li>
+              <li>✅ File size: max 50 MB per song</li>
+              <li>✅ Formats: MP3, WAV, FLAC, AAC</li>
+              <li>✅ Artwork: min 500×500 pixels</li>
+              <li>✅ Clear, professional audio quality</li>
+              <li>❌ No copyrighted material</li>
+              <li>❌ No plagiarism or covers without licence</li>
+            </ul>
+          </div>
+
+          <div class="info-card">
+            <h3>💰 How You Earn</h3>
+
+            <div class="earn-list">
+              <div class="earn-item"><span class="earn-ic">🎵</span>
+                <div><strong>MK 1 per full play</strong>
+                  <p>Every completed stream of your song</p>
+                </div>
+              </div>
+
+              <div class="earn-item"><span class="earn-ic">👥</span>
+                <div><strong>100 followers required</strong>
+                  <p>Reach 100 followers to enable earnings</p>
+                </div>
+              </div>
+
+              <div class="earn-item"><span class="earn-ic">📊</span>
+                <div><strong>1,000 plays to withdraw</strong>
+                  <p>Minimum per song before cash-out</p>
+                </div>
+              </div>
+
+
+              <div class="earn-item"><span class="earn-ic">🔗</span>
+                <div><strong>Fans earn MK 2/share</strong>
+                  <p>Fans get MK 2 when new users register via their referral link</p>
+                </div>
+
+              </div>
+
+            </div>
+
+          </div>
+
+
+          <div class="info-card">
+            <h3>📱 Payment Partners</h3>
+
+            <div class="pay-logos">
+              <div class="pay-logo">🏦 National Bank</div>
+              <div class="pay-logo">📱 Airtel Money</div>
+              <div class="pay-logo">📱 Mpamba/TNM</div>
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+
+  </section>
+
+  <!-- ════ PAGE: ANALYTICS DASHBOARD ════ -->
+  <section class="page" id="page-dashboard">
+    <div class="page-content">
+      <div class="page-hdr"><h1><i data-lucide="activity"></i> Artist Analytics</h1>
+        <p>Your music performance at a glance</p>
+      </div>
+      <div id="dashboard-content"></div>
+    </div>
+  </section>
+
+
+  <!-- ════ PAGE: EARNINGS ════ -->
+  <section class="page" id="page-earnings">
+    <div class="page-content">
+      <div class="page-hdr">
+        <h1><i data-lucide="banknote"></i> Earnings</h1>
+        <p>Track your income and withdraw your kwacha</p>
+      </div>
+      <div id="earnings-content"></div>
+    </div>
+  </section>
+
+  <!-- ════ PAGE: MY PROFILE ════ -->
+  <section class="page" id="page-profile">
+
+    <div class="page-content" id="my-profile-content">
+
+    </div>
+
+  </section>
+
+  <!-- ════ PAGE: SETTINGS ════ -->
+  <section class="page" id="page-settings">
+    <div class="page-content">
+      <div class="page-hdr">
+        <h1><i data-lucide="settings"></i> Settings</h1>
+        <p>Customize your DUODROP experience</p>
+      </div>
+      <div id="settings-content"></div>
+    </div>
+  </section>
+
+  <!-- ════ PAGE: ADMIN ════ -->
+  <section class="page" id="page-admin">
+    <div class="page-content">
+      <div class="page-hdr">
+        <h1><i data-lucide="shield"></i> Administrator Dashboard</h1>
+        <p>Manage users, songs, and platform content</p>
+      </div>
+      <div id="admin-dashboard-content"></div>
+    </div>
+  </section>
+
+  <!-- ════ PAGE: SONG DETAIL ════ -->
+  <section class="page" id="page-song">
+
+    <div class="page-content" id="song-detail-content">
+
+    </div>
+
+  </section>
+
+</div><!-- /main-wrap -->
+
+<!-- ══ PLAYER BAR ════════════════════════════════════════════ -->
+<div class="player-bar" id="player-bar">
+
+
+  <div class="pb-track">
+    <div class="pb-art" id="pb-art"><i data-lucide="disc-3"></i></div>
+    <div class="pb-info">
+      <div class="pb-title"  id="pb-title">No track selected</div>
+      <div class="pb-artist" id="pb-artist">—</div>
+    </div>
+    <button class="pb-like" id="pb-like-btn" onclick="toggleLikeCurrent()"><i data-lucide="heart"></i></button>
+  </div>
+
+  <div class="pb-controls">
+    <button class="pbc" onclick="shuffleToggle()"  id="pbc-shuffle" title="Shuffle"><i data-lucide="shuffle"></i></button>
+    <button class="pbc" onclick="prevTrack()"       title="Previous"><i data-lucide="skip-back"></i></button>
+    <button class="pbc pbc-play" id="pbc-play" onclick="togglePlay()"><i data-lucide="play"></i></button>
+    <button class="pbc" onclick="nextTrack()"       title="Next"><i data-lucide="skip-forward"></i></button>
+    <button class="pbc" onclick="repeatToggle()"   id="pbc-repeat" title="Repeat"><i data-lucide="repeat"></i></button>
+  </div>
+
+  <div class="pb-progress-wrap">
+
+    <span class="pb-time" id="pb-current">0:00</span>
+
+    <div class="pb-progress" onclick="seekTo(event)" id="pb-prog-bar">
+
+      <div class="pb-prog-track">
+        <div class="pb-prog-fill" id="pb-prog-fill"></div>
+        <div class="pb-prog-thumb" id="pb-prog-thumb"></div>
+      </div>
+    </div>
+
+    <span class="pb-time" id="pb-duration">0:00</span>
+  </div>
+
+
+  <div class="pb-right">
+    <button class="pbc" onclick="toggleMute()" id="pbc-mute"><i data-lucide="volume-2"></i></button>
+    <input type="range" class="vol-slider" id="vol-slider" min="0" max="100" value="80" oninput="setVolume(this.value)">
+    <button class="pbc" onclick="shareCurrentSong()" title="Share"><i data-lucide="share-2"></i></button>
+    <button class="pbc" onclick="downloadCurrentSong()" title="Download"><i data-lucide="download"></i></button>
+  </div>
+</div>
+
+<!-- ══ MODALS ════════════════════════════════════════════════ -->
+
+<!-- Auth Modal -->
+<div class="modal-overlay" id="modal-auth">
+  <div class="modal modal-md">
+    <div class="modal-hdr">
+      <div class="modal-tabs">
+        <button class="mtab active" id="tab-login"    onclick="switchAuthTab('login')">Sign In</button>
+        <button class="mtab"        id="tab-register" onclick="switchAuthTab('register')">Sign Up</button>
+      </div>
+      <button class="modal-close" onclick="closeModal('modal-auth')"><i data-lucide="x"></i></button>
+    </div>
+
+
+    <div class="modal-body">
+
+      <!-- LOGIN -->
+      <div id="auth-login">
+
+        <div class="auth-brand"><i data-lucide="disc-3"></i> DUODROP</div>
+        <div class="fg"><label>Email</label><input type="email" id="l-email" placeholder="your@email.com">
+          <div class="fe" id="err-l-email"></div>
+        </div>
+
+        <div class="fg"><label>Password</label>
+          <input type="password" id="l-password" placeholder="••••••••">
+          <div class="fe" id="err-l-password">
+
+          </div>
+        </div>
+        <!-- Cloudflare Turnstile Captcha -->
+        <div class="turnstile-wrap">
+          <div class="cf-turnstile"
+               id="login-turnstile"
+               data-sitekey="0x4AAAAAAD0fMAOYp-EoILqc"
+               data-callback="onLoginTurnstileSuccess"
+               data-error-callback="onTurnstileError"
+               data-theme="dark"
+               data-size="flexible">
+          </div>
+        </div>
+
+        <div class="fe" id="err-login-captcha"></div>
+        <div class="fe" id="err-login"></div>
+        <button class="btn btn-primary btn-block" onclick="doLogin()"><i data-lucide="log-in"></i> Sign In</button>
+
+        <div class="auth-divider"><span>or</span></div>
+
+        <button class="google-auth-btn" id="google-signin-btn" onclick="signInWithGoogle('fan')">
+          <svg width="18" height="18" viewBox="0 0 48 48" style="vertical-align:-3px;margin-right:8px"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/><path fill="none" d="M0 0h48v48H0z"/></svg>
+          Continue with Google
+        </button>
+
+        <p class="auth-switch">No account? <a href="#" onclick="switchAuthTab('register')">Join Free →</a></p>
+      </div>
+
+
+      <!-- REGISTER -->
+      <div id="auth-register" style="display:none;">
+        <div class="auth-brand"><i data-lucide="disc-3"></i> DUODROP</div>
+        <div class="form-row">
+          <div class="fg"><label>Username *</label>
+            <input type="text" id="r-username" placeholder="YourArtistName">
+            <div class="fe" id="err-r-username">
+
+            </div>
+          </div>
+
+          <div class="fg">
+            <label>I am a…</label>
+            <select id="r-role">
+              <option value="fan">Fan / Listener</option>
+              <option value="artist">Artist</option>
+            </select>
+          </div>
+        </div>
+
+
+        <div class="fg">
+          <label>Full Name *</label>
+          <input type="text" id="r-name" placeholder="Your full name">
+          <div class="fe" id="err-r-name">
+
+          </div>
+        </div>
+
+        <div class="fg">
+          <label>Email *</label>
+          <input type="email" id="r-email" placeholder="your@email.com">
+          <div class="fe" id="err-r-email">
+
+          </div>
+        </div>
+
+
+        <div class="fg">
+          <label>Password *</label>
+          <input type="password" id="r-password" placeholder="Min 8 characters">
+          <div class="fe" id="err-r-password"></div>
+        </div>
+
+        <div class="fg">
+          <label>Phone (for Mpamba/Airtel earnings)</label>
+          <input type="text" id="r-phone" placeholder="+265 8XX XXX XXX">
+        </div>
+
+        <div class="fg">
+          <label>Referral Code <span style="opacity:.5;">(optional)</span></label>
+          <input type="text" id="r-referral" placeholder="e.g. REF-RICHARDCA123">
+        </div>
+
+        <!-- Cloudflare Turnstile Captcha -->
+        <div class="turnstile-wrap">
+          <div class="cf-turnstile"
+               id="reg-turnstile"
+               data-sitekey="0x4AAAAAAD0fMAOYp-EoILqc"
+               data-callback="onRegTurnstileSuccess"
+               data-error-callback="onTurnstileError"
+               data-theme="dark"
+               data-size="flexible">
+          </div>
+        </div>
+
+        <div class="fe" id="err-reg-captcha"></div>
+        <div class="fe" id="err-register"></div>
+
+        <button class="btn btn-primary btn-block" onclick="doRegister()"><i data-lucide="user-plus"></i> Create Account</button>
+
+        <div class="auth-divider"><span>or</span></div>
+
+        <!-- Google Sign-Up: role is read from the dropdown above -->
+        <button class="google-auth-btn" id="google-register-btn"
+                onclick="signInWithGoogle(document.getElementById('r-role').value)">
+          <svg width="18" height="18" viewBox="0 0 48 48" style="vertical-align:-3px;margin-right:8px"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/><path fill="none" d="M0 0h48v48H0z"/></svg>
+          Sign up with Google
+        </button>
+
+        <p class="auth-switch">Already have an account? <a href="#" onclick="switchAuthTab('login')">Sign In →</a></p>
+      </div>
+
+    </div>
+
+  </div>
+
+
+</div>
+
+<!-- Comment Modal -->
+<div class="modal-overlay" id="modal-comment">
+  <div class="modal modal-sm">
+    <div class="modal-hdr">
+      <h3 id="comment-modal-title"><i data-lucide="message-circle"></i> Comments</h3>
+      <button class="modal-close" onclick="closeModal('modal-comment')"><i data-lucide="x"></i></button>
+    </div>
+
+    <div class="modal-body">
+      <div class="comments-list" id="comments-list"></div>
+      <div class="comment-row">
+        <input type="text" id="comment-input" placeholder="Write a comment…" onkeydown="if(event.key==='Enter')postComment()">
+        <button class="btn btn-accent btn-sm" onclick="postComment()">Post</button>
+      </div>
+
+    </div>
+
+  </div>
+
+</div>
+
+<!-- Withdrawal Modal -->
+<div class="modal-overlay" id="modal-withdraw">
+  <div class="modal modal-sm">
+    <div class="modal-hdr">
+      <h3><i data-lucide="banknote"></i> Withdraw Earnings</h3>
+      <button class="modal-close" onclick="closeModal('modal-withdraw')"><i data-lucide="x"></i></button>
+    </div>
+
+    <div class="modal-body">
+      <div id="withdraw-body"></div>
+    </div>
+
+  </div>
+
+</div>
+
+<!-- Profile Edit Modal -->
+<div class="modal-overlay" id="modal-profile-edit">
+
+  <div class="modal modal-md">
+
+    <div class="modal-hdr">
+      <h3><i data-lucide="edit-2"></i> Edit Profile</h3>
+      <button class="modal-close" onclick="closeModal('modal-profile-edit')"><i data-lucide="x"></i></button>
+    </div>
+
+    <div class="modal-body">
+
+      <div class="profile-pic-edit">
+
+        <div class="pp-preview" id="pp-edit-preview" onclick="document.getElementById('pp-edit-input').click()">
+          <span id="pp-edit-initials"></span>
+
+        </div>
+
+        <span class="pp-change" onclick="document.getElementById('pp-edit-input').click()"><i data-lucide="camera"></i> Change Profile Picture</span>
+
+        <input type="file" id="pp-edit-input" accept="image/*" style="display:none" onchange="handleProfilePicEdit(this)">
+
+        <small class="dim">Max 2MB · JPG or PNG</small>
+
+      </div>
+
+      <div class="fg">
+        <label>Full Name</label>
+        <input type="text" id="pe-name" placeholder="Your full name">
+      </div>
+
+      <div class="fg">
+        <label>Bio <span style="opacity:.5;">(max 300 characters)</span>
+        </label>
+        <textarea id="pe-bio" rows="4" maxlength="300" placeholder="Tell fans about yourself…"></textarea>
+      </div>
+
+      <div class="fg">
+        <label>Phone</label>
+        <input type="text" id="pe-phone" placeholder="+265 9XX XXX XXX">
+      </div>
+
+      <button class="btn btn-primary btn-block" onclick="saveProfileModal()"><i data-lucide="save"></i> Save Changes</button>
+    </div>
+
+  </div>
+
+</div>
+
+<!-- Policy / Legal Modal -->
+<div class="modal-overlay" id="modal-policy">
+  <div class="modal modal-lg">
+
+    <div class="modal-hdr">
+      <h3 id="policy-modal-title">Terms of Service</h3>
+      <button class="modal-close" onclick="closeModal('modal-policy')"><i data-lucide="x"></i></button>
+    </div>
+
+    <div class="modal-body" id="policy-modal-body"></div>
+  </div>
+
+</div>
+
+<!-- Toast notification -->
+<div id="toast" class="toast"></div>
+
+<!-- Hidden audio engine -->
+<audio id="audio-engine" preload="metadata"></audio>
+
+<script src="js/zod.js"></script>
+<script src="js/api.js"></script>
+<script src="js/data.js"></script>
+<script src="js/app.js"></script>
+<script src="js/firebase-auth.js"></script>
+<script src="js/player.js"></script>
+<script src="js/discover.js"></script>
+<script src="js/upload.js"></script>
+<script src="js/analytics.js"></script>
+<script src="js/settings.js"></script>
+<script src="js/admin.js"></script>
+<script src="js/charts.js"></script>
+
+</body>
+
+</html>

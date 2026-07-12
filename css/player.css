@@ -1,0 +1,253 @@
+/* ================================================================
+   DUODROP — Player Bar Styles
+   ================================================================ */
+
+.player-bar {
+  position: fixed; 
+  bottom: 0; 
+  left: 0; 
+  right: 0;
+  height: var(--player-h); 
+  background: var(--bg2);
+  border-top: 1px solid var(--border);
+  display: grid; 
+  grid-template-columns: 280px 1fr 280px 240px;
+  align-items: center; 
+  gap: 16px; 
+  padding: 0 20px;
+  z-index: 200; 
+  box-shadow: 0 -8px 32px rgba(0,0,0,.3);
+}
+
+/* Track info */
+.pb-track  { 
+  display: flex; 
+  align-items: center; 
+  gap: 12px; 
+  min-width: 0; }
+
+.pb-art    {
+  width: 48px; 
+  height: 48px; 
+  border-radius: 8px; 
+  flex-shrink: 0;
+  background: linear-gradient(135deg, var(--accent), #7b2d8b);
+  display: flex; 
+  align-items: center; 
+  justify-content: center;
+  font-size: 22px; 
+  overflow: hidden;
+}
+
+
+.pb-info   { 
+  min-width: 0; 
+  flex: 1; 
+}
+
+.pb-title  { 
+  font-size: 13px; 
+  font-weight: 700; 
+  white-space: nowrap; 
+  overflow: hidden; 
+  text-overflow: ellipsis; 
+}
+
+
+.pb-artist { 
+  font-size: 11px; 
+  color: var(--text-dim); 
+}
+
+.pb-like   { 
+  background: none; 
+  border: none; 
+  cursor: pointer; 
+  font-size: 18px; 
+  padding: 4px; 
+  color: var(--text-dim); 
+  flex-shrink: 0; 
+}
+
+.pb-like:hover { 
+  transform: scale(1.2); 
+}
+
+/* Controls */
+.pb-controls {
+  display: flex; 
+  align-items: center; 
+  justify-content: center; 
+  gap: 8px;
+}
+
+.pbc {
+  background: none; 
+  border: none; 
+  color: var(--text-dim);
+  font-size: 18px; 
+  cursor: pointer; 
+  padding: 8px; 
+  border-radius: 50%;
+  transition: all .15s; 
+  line-height: 1;
+}
+
+.pbc:hover  { 
+  color: var(--text); 
+  background: rgba(255,255,255,.06); 
+}
+
+.pbc.active { 
+  color: var(--accent2);
+}
+
+.pbc-play {
+  width: 44px; 
+  height: 44px; 
+  border-radius: 50%;
+  background: var(--accent); 
+  color: #fff !important; 
+  font-size: 18px;
+  display: flex; 
+  align-items: center; 
+  justify-content: center;
+  padding: 0;
+}
+
+.pbc-play:hover { 
+  background: var(--accent2) !important; 
+  transform: scale(1.06); 
+}
+
+/* Progress */
+.pb-progress-wrap {
+  display: flex; 
+  align-items: center; 
+  gap: 10px; 
+  flex: 1;
+}
+
+.pb-time { 
+  font-size: 11px; 
+  color: var(--text-dim); 
+  white-space: nowrap; 
+}
+
+.pb-progress {
+  flex: 1; 
+  cursor: pointer; 
+  padding: 12px 0;
+}
+
+.pb-prog-track {
+  height: 4px; 
+  background: var(--border); 
+  border-radius: 2px;
+  position: relative;
+}
+.pb-prog-fill  {
+  height: 100%; 
+  background: linear-gradient(90deg, var(--accent), var(--gold));
+  border-radius: 2px; 
+  width: 0;
+}
+
+.pb-prog-thumb {
+  width: 12px; 
+  height: 12px; 
+  border-radius: 50%; 
+  background: #fff;
+  position: absolute; 
+  top: 50%; 
+  transform: translate(-50%,-50%);
+  left: 0; 
+  transition: transform .1s;
+  box-shadow: 0 2px 6px rgba(0,0,0,.4);
+  opacity: 0; 
+  transition: opacity .2s;
+}
+
+.pb-progress:hover .pb-prog-thumb { 
+  opacity: 1; 
+}
+
+.pb-progress:hover .pb-prog-fill  { 
+  background: linear-gradient(90deg, var(--accent2), var(--gold)); 
+}
+
+/* Volume / right */
+.pb-right  { 
+  display: flex; 
+  align-items: center; 
+  gap: 8px; 
+  justify-content: flex-end; 
+}
+
+.vol-slider {
+  -webkit-appearance: none; 
+  width: 80px; 
+  height: 4px;
+  background: var(--border); 
+  border-radius: 2px; 
+  outline: none; 
+  cursor: pointer;
+}
+
+.vol-slider::-webkit-slider-thumb {
+  -webkit-appearance: none; 
+  width: 12px; 
+  height: 12px;
+  border-radius: 50%; 
+  background: var(--accent);
+}
+
+.vol-slider::-moz-range-thumb {
+  width: 12px; 
+  height: 12px; 
+  border-radius: 50%;
+  background: var(--accent); 
+  border: none;
+}
+
+/* Responsive player */
+@media (max-width: 900px) {
+  .player-bar {
+    grid-template-columns: 1fr auto 1fr;
+    grid-template-rows: auto auto;
+    height: auto; padding: 10px 16px 14px;
+    gap: 8px 12px;
+  }
+  .pb-track   { 
+    grid-column: 1; 
+    grid-row: 1; 
+  }
+
+  .pb-controls{ 
+    grid-column: 2; 
+    grid-row: 1; 
+  }
+  .pb-right   { 
+    grid-column: 3; 
+    grid-row: 1; 
+    justify-content: flex-end; 
+  }
+
+  .pb-progress-wrap { 
+    grid-column: 1 / -1; 
+    grid-row: 2; 
+  }
+
+  .vol-slider { 
+    width: 60px; 
+  }
+}
+
+@media (max-width: 480px) {
+  .pb-artist, .pb-time, .vol-slider { 
+    display: none; 
+  }
+  
+  .pb-right { 
+    gap: 4px; }
+}

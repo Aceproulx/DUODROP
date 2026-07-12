@@ -1,0 +1,1108 @@
+openapi: 3.1.0
+info:
+  title: Api
+  version: 0.1.0
+  description: DUODROP Music Streaming Platform API
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+  - name: auth
+    description: Authentication
+  - name: users
+    description: User management
+  - name: artists
+    description: Artist profiles
+  - name: songs
+    description: Song management
+  - name: playlists
+    description: Playlists
+  - name: discover
+    description: Discovery & trending
+  - name: analytics
+    description: Artist analytics
+  - name: admin
+    description: Admin dashboard
+
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+
+  # AUTH
+  /auth/register:
+    post:
+      operationId: registerUser
+      tags: [auth]
+      summary: Register a new user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterInput"
+      responses:
+        "201":
+          description: User created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "400":
+          description: Validation error
+
+  /auth/login:
+    post:
+      operationId: loginUser
+      tags: [auth]
+      summary: Login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginInput"
+      responses:
+        "200":
+          description: Logged in
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "401":
+          description: Invalid credentials
+
+  /auth/logout:
+    post:
+      operationId: logoutUser
+      tags: [auth]
+      summary: Logout
+      responses:
+        "200":
+          description: Logged out
+
+  /auth/me:
+    get:
+      operationId: getCurrentUser
+      tags: [auth]
+      summary: Get current user
+      responses:
+        "200":
+          description: Current user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "401":
+          description: Not authenticated
+
+  # USERS
+  /users/{userId}:
+    get:
+      operationId: getUser
+      tags: [users]
+      summary: Get user by ID
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: User found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "404":
+          description: User not found
+
+    patch:
+      operationId: updateUser
+      tags: [users]
+      summary: Update user profile
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserUpdate"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+
+  /users/{userId}/follow:
+    post:
+      operationId: followArtist
+      tags: [users]
+      summary: Follow an artist
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Followed
+
+    delete:
+      operationId: unfollowArtist
+      tags: [users]
+      summary: Unfollow an artist
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Unfollowed
+
+  # ARTISTS
+  /artists:
+    get:
+      operationId: listArtists
+      tags: [artists]
+      summary: List artists
+      parameters:
+        - name: search
+          in: query
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+        - name: offset
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of artists
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Artist"
+
+  /artists/{artistId}:
+    get:
+      operationId: getArtist
+      tags: [artists]
+      summary: Get artist profile
+      parameters:
+        - name: artistId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Artist profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Artist"
+        "404":
+          description: Not found
+
+    patch:
+      operationId: updateArtist
+      tags: [artists]
+      summary: Update artist profile
+      parameters:
+        - name: artistId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ArtistUpdate"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Artist"
+
+  /artists/{artistId}/songs:
+    get:
+      operationId: getArtistSongs
+      tags: [artists]
+      summary: Get songs by artist
+      parameters:
+        - name: artistId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Artist songs
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Song"
+
+  # SONGS
+  /songs:
+    get:
+      operationId: listSongs
+      tags: [songs]
+      summary: List songs
+      parameters:
+        - name: genre
+          in: query
+          schema:
+            type: string
+        - name: search
+          in: query
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+        - name: offset
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of songs
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Song"
+
+    post:
+      operationId: createSong
+      tags: [songs]
+      summary: Upload a new song
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SongInput"
+      responses:
+        "201":
+          description: Song created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Song"
+
+  /songs/{songId}:
+    get:
+      operationId: getSong
+      tags: [songs]
+      summary: Get song by ID
+      parameters:
+        - name: songId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Song found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Song"
+        "404":
+          description: Not found
+
+    patch:
+      operationId: updateSong
+      tags: [songs]
+      summary: Update song metadata
+      parameters:
+        - name: songId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SongUpdate"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Song"
+
+    delete:
+      operationId: deleteSong
+      tags: [songs]
+      summary: Delete a song
+      parameters:
+        - name: songId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Deleted
+
+  /songs/{songId}/play:
+    post:
+      operationId: playSong
+      tags: [songs]
+      summary: Record a song play
+      parameters:
+        - name: songId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Play recorded
+
+  /songs/{songId}/like:
+    post:
+      operationId: likeSong
+      tags: [songs]
+      summary: Like a song
+      parameters:
+        - name: songId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Liked
+
+    delete:
+      operationId: unlikeSong
+      tags: [songs]
+      summary: Unlike a song
+      parameters:
+        - name: songId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Unliked
+
+  /songs/{songId}/comments:
+    get:
+      operationId: getSongComments
+      tags: [songs]
+      summary: Get comments for a song
+      parameters:
+        - name: songId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Comments
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Comment"
+
+    post:
+      operationId: addComment
+      tags: [songs]
+      summary: Add a comment
+      parameters:
+        - name: songId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CommentInput"
+      responses:
+        "201":
+          description: Comment added
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Comment"
+
+  # DISCOVER
+  /discover/trending:
+    get:
+      operationId: getTrending
+      tags: [discover]
+      summary: Get trending songs and artists
+      responses:
+        "200":
+          description: Trending
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TrendingData"
+
+  /discover/featured:
+    get:
+      operationId: getFeatured
+      tags: [discover]
+      summary: Get featured/curated content
+      responses:
+        "200":
+          description: Featured content
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FeaturedData"
+
+  /discover/genres:
+    get:
+      operationId: listGenres
+      tags: [discover]
+      summary: List available genres
+      responses:
+        "200":
+          description: Genres
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Genre"
+
+  # ANALYTICS
+  /analytics/artist/{artistId}:
+    get:
+      operationId: getArtistAnalytics
+      tags: [analytics]
+      summary: Get analytics for an artist
+      parameters:
+        - name: artistId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Analytics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ArtistAnalytics"
+
+  /analytics/earnings/{artistId}:
+    get:
+      operationId: getArtistEarnings
+      tags: [analytics]
+      summary: Get earnings for an artist
+      parameters:
+        - name: artistId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Earnings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EarningsData"
+
+  /analytics/earnings/{artistId}/withdraw:
+    post:
+      operationId: requestWithdrawal
+      tags: [analytics]
+      summary: Request earnings withdrawal
+      parameters:
+        - name: artistId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WithdrawalInput"
+      responses:
+        "200":
+          description: Withdrawal requested
+
+  # ADMIN
+  /admin/stats:
+    get:
+      operationId: getAdminStats
+      tags: [admin]
+      summary: Platform-wide stats for admin
+      responses:
+        "200":
+          description: Stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminStats"
+
+  /admin/users:
+    get:
+      operationId: listAdminUsers
+      tags: [admin]
+      summary: List all users (admin)
+      parameters:
+        - name: search
+          in: query
+          schema:
+            type: string
+        - name: role
+          in: query
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+        - name: offset
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: All users
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/User"
+
+  /admin/songs:
+    get:
+      operationId: listAdminSongs
+      tags: [admin]
+      summary: List all songs (admin)
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+        - name: offset
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: All songs
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Song"
+
+  /admin/songs/{songId}/approve:
+    post:
+      operationId: approveSong
+      tags: [admin]
+      summary: Approve a pending song
+      parameters:
+        - name: songId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Approved
+
+  /admin/songs/{songId}/reject:
+    post:
+      operationId: rejectSong
+      tags: [admin]
+      summary: Reject a pending song
+      parameters:
+        - name: songId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Rejected
+
+  /admin/withdrawals:
+    get:
+      operationId: listWithdrawals
+      tags: [admin]
+      summary: List withdrawal requests
+      responses:
+        "200":
+          description: Withdrawals
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Withdrawal"
+
+  /admin/withdrawals/{withdrawalId}/approve:
+    post:
+      operationId: approveWithdrawal
+      tags: [admin]
+      summary: Approve a withdrawal
+      parameters:
+        - name: withdrawalId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Approved
+
+components:
+  schemas:
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+      required:
+        - status
+
+    # AUTH
+    RegisterInput:
+      type: object
+      required: [username, email, password, role, captchaToken]
+      properties:
+        username:
+          type: string
+          minLength: 2
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 8
+        role:
+          type: string
+          enum: [fan, artist]
+        captchaToken:
+          type: string
+        bio:
+          type: ["string", "null"]
+        profilePicUrl:
+          type: ["string", "null"]
+
+    LoginInput:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+        password:
+          type: string
+
+    AuthResponse:
+      type: object
+      required: [user, token]
+      properties:
+        user:
+          $ref: "#/components/schemas/User"
+        token:
+          type: string
+
+    # USER
+    User:
+      type: object
+      required: [id, username, email, role, createdAt]
+      properties:
+        id:
+          type: integer
+        username:
+          type: string
+        email:
+          type: string
+        role:
+          type: string
+          enum: [fan, artist, admin]
+        bio:
+          type: ["string", "null"]
+        profilePicUrl:
+          type: ["string", "null"]
+        followersCount:
+          type: integer
+        followingCount:
+          type: integer
+        isFollowing:
+          type: ["boolean", "null"]
+        themePreference:
+          type: string
+          enum: [dark, light]
+        createdAt:
+          type: string
+
+    UserUpdate:
+      type: object
+      properties:
+        username:
+          type: string
+        bio:
+          type: ["string", "null"]
+        profilePicUrl:
+          type: ["string", "null"]
+        themePreference:
+          type: string
+          enum: [dark, light]
+        socialLinks:
+          $ref: "#/components/schemas/SocialLinks"
+
+    SocialLinks:
+      type: object
+      properties:
+        instagram:
+          type: ["string", "null"]
+        twitter:
+          type: ["string", "null"]
+        facebook:
+          type: ["string", "null"]
+        youtube:
+          type: ["string", "null"]
+
+    # ARTIST
+    Artist:
+      type: object
+      required: [id, username, followersCount, songsCount]
+      properties:
+        id:
+          type: integer
+        username:
+          type: string
+        bio:
+          type: ["string", "null"]
+        profilePicUrl:
+          type: ["string", "null"]
+        followersCount:
+          type: integer
+        songsCount:
+          type: integer
+        totalPlays:
+          type: integer
+        totalEarnings:
+          type: number
+        isFollowing:
+          type: ["boolean", "null"]
+        socialLinks:
+          $ref: "#/components/schemas/SocialLinks"
+        isEligibleForEarnings:
+          type: boolean
+
+    ArtistUpdate:
+      type: object
+      properties:
+        bio:
+          type: ["string", "null"]
+        profilePicUrl:
+          type: ["string", "null"]
+        socialLinks:
+          $ref: "#/components/schemas/SocialLinks"
+
+    # SONG
+    Song:
+      type: object
+      required: [id, title, artistId, artistName, genre, isPremium, playCount, likeCount, createdAt]
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        artistId:
+          type: integer
+        artistName:
+          type: string
+        artistProfilePicUrl:
+          type: ["string", "null"]
+        genre:
+          type: string
+        description:
+          type: ["string", "null"]
+        artworkUrl:
+          type: ["string", "null"]
+        audioUrl:
+          type: string
+        isPremium:
+          type: boolean
+        allowDownload:
+          type: boolean
+        playCount:
+          type: integer
+        likeCount:
+          type: integer
+        isLiked:
+          type: ["boolean", "null"]
+        durationSeconds:
+          type: ["integer", "null"]
+        status:
+          type: string
+          enum: [pending, approved, rejected]
+        createdAt:
+          type: string
+
+    SongInput:
+      type: object
+      required: [title, genre, audioUrl]
+      properties:
+        title:
+          type: string
+        genre:
+          type: string
+        description:
+          type: ["string", "null"]
+        artworkUrl:
+          type: ["string", "null"]
+        audioUrl:
+          type: string
+        isPremium:
+          type: boolean
+        allowDownload:
+          type: boolean
+        durationSeconds:
+          type: ["integer", "null"]
+
+    SongUpdate:
+      type: object
+      properties:
+        title:
+          type: string
+        genre:
+          type: string
+        description:
+          type: ["string", "null"]
+        artworkUrl:
+          type: ["string", "null"]
+        isPremium:
+          type: boolean
+        allowDownload:
+          type: boolean
+
+    # COMMENTS
+    Comment:
+      type: object
+      required: [id, songId, userId, username, body, createdAt]
+      properties:
+        id:
+          type: integer
+        songId:
+          type: integer
+        userId:
+          type: integer
+        username:
+          type: string
+        profilePicUrl:
+          type: ["string", "null"]
+        body:
+          type: string
+        createdAt:
+          type: string
+
+    CommentInput:
+      type: object
+      required: [body]
+      properties:
+        body:
+          type: string
+          minLength: 1
+
+    # DISCOVER
+    TrendingData:
+      type: object
+      required: [songs, artists]
+      properties:
+        songs:
+          type: array
+          items:
+            $ref: "#/components/schemas/Song"
+        artists:
+          type: array
+          items:
+            $ref: "#/components/schemas/Artist"
+
+    FeaturedData:
+      type: object
+      required: [featuredSongs, newReleases, topMalawian]
+      properties:
+        featuredSongs:
+          type: array
+          items:
+            $ref: "#/components/schemas/Song"
+        newReleases:
+          type: array
+          items:
+            $ref: "#/components/schemas/Song"
+        topMalawian:
+          type: array
+          items:
+            $ref: "#/components/schemas/Artist"
+
+    Genre:
+      type: object
+      required: [name, songCount]
+      properties:
+        name:
+          type: string
+        songCount:
+          type: integer
+
+    # ANALYTICS
+    ArtistAnalytics:
+      type: object
+      required: [totalPlays, totalLikes, totalFollowers, topSongs, playsOverTime]
+      properties:
+        totalPlays:
+          type: integer
+        totalLikes:
+          type: integer
+        totalFollowers:
+          type: integer
+        totalEarnings:
+          type: number
+        topSongs:
+          type: array
+          items:
+            $ref: "#/components/schemas/Song"
+        playsOverTime:
+          type: array
+          items:
+            $ref: "#/components/schemas/PlayDataPoint"
+
+    PlayDataPoint:
+      type: object
+      required: [date, plays]
+      properties:
+        date:
+          type: string
+        plays:
+          type: integer
+
+    EarningsData:
+      type: object
+      required: [totalEarnings, availableBalance, isWithdrawable, totalPlays, followersCount]
+      properties:
+        totalEarnings:
+          type: number
+        availableBalance:
+          type: number
+        isWithdrawable:
+          type: boolean
+        totalPlays:
+          type: integer
+        followersCount:
+          type: integer
+        withdrawalHistory:
+          type: array
+          items:
+            $ref: "#/components/schemas/Withdrawal"
+
+    WithdrawalInput:
+      type: object
+      required: [amount, paymentMethod, accountNumber]
+      properties:
+        amount:
+          type: number
+        paymentMethod:
+          type: string
+          enum: [mpamba, airtel_money, bank]
+        accountNumber:
+          type: string
+
+    Withdrawal:
+      type: object
+      required: [id, artistId, amount, paymentMethod, accountNumber, status, createdAt]
+      properties:
+        id:
+          type: integer
+        artistId:
+          type: integer
+        amount:
+          type: number
+        paymentMethod:
+          type: string
+        accountNumber:
+          type: string
+        status:
+          type: string
+          enum: [pending, approved, rejected]
+        createdAt:
+          type: string
+
+    # ADMIN
+    AdminStats:
+      type: object
+      required: [totalUsers, totalArtists, totalSongs, totalPlays, totalEarningsPaid, pendingSongs, pendingWithdrawals]
+      properties:
+        totalUsers:
+          type: integer
+        totalArtists:
+          type: integer
+        totalSongs:
+          type: integer
+        totalPlays:
+          type: integer
+        totalEarningsPaid:
+          type: number
+        pendingSongs:
+          type: integer
+        pendingWithdrawals:
+          type: integer
