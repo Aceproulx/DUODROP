@@ -38,9 +38,13 @@ app.get('*', (_req, res) => {
 });
 
 // ── Start ─────────────────────────────────────────────────────
-app.listen(PORT, () => {
-  console.log('');
-  console.log('  🎵  DUODROP Server is live!');
-  console.log(`  👉  http://localhost:${PORT}`);
-  console.log('');
-});
+if (require.main === module) {
+  app.listen(PORT, () => {
+    console.log('');
+    console.log('  🎵  DUODROP Server is live!');
+    console.log(`  👉  http://localhost:${PORT}`);
+    console.log('');
+  });
+}
+
+module.exports = app;
