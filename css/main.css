@@ -3205,6 +3205,10 @@ a:hover {
     display: block; 
   }
 
+  .topbar-right .btn-accent {
+    display: none;
+  }
+
   .hero-visual { 
     display: none; 
   }
