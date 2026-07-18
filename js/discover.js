@@ -95,31 +95,86 @@ function renderTrendingList() {
 
 // ── Playlists ─────────────────────────────────────────────────
 function renderPlaylists() {
-  const el = document.getElementById('playlists-grid');
+  const el = document.getElementById('page-playlists');
   if (!el) return;
   const pls = DB.Playlists.all();
-  el.innerHTML = pls.length
+  const cu = DB.Users.current();
+  
+  let gridHTML = pls.length
     ? pls.map(pl => `
-      <div class="playlist-grid-card" style="border-top:4px solid ${pl.color||'#333'};">
-        <div class="pgc-top" onclick="playPlaylist('${pl.id}')">
-          <div class="pgc-emoji">${pl.emoji || '🎶'}</div>
-          <div>
-            <div class="pgc-name">${pl.name}</div>
-            <div class="pgc-count">${(pl.songs||[]).length} songs</div>
+      <div class="premium-playlist-card" onclick="playPlaylist('${pl.id}')" style="--pl-color: ${pl.color || '#CE1126'};">
+        <div class="ppc-cover" style="background: linear-gradient(135deg, ${pl.color || '#CE1126'}, #111);">
+          <div class="ppc-emoji">${pl.emoji || '🎶'}</div>
+          <button class="ppc-play-btn"><i data-lucide="play" fill="currentColor"></i></button>
+        </div>
+        <div class="ppc-info">
+          <h3 class="ppc-title">${pl.name}</h3>
+          <div class="ppc-meta">${(pl.songs || []).length} songs</div>
+          <p class="ppc-desc">${pl.desc || 'A collection of great tracks.'}</p>
+        </div>
+      </div>`).join('')
+    : '<div class="empty-state"><div class="es-icon">🎶</div><p>No playlists yet. Be the first to create one!</p></div>';
+
+  el.innerHTML = `
+    <div class="page-content">
+      <div class="premium-hero">
+        <div class="ph-content">
+          <div class="ph-badge">Curated Collections</div>
+          <h1 class="ph-title">Discover <span class="ph-accent">Playlists</span></h1>
+          <p class="ph-sub">Explore handcrafted vibes for every mood or create your own custom mix to share with the world.</p>
+          ${cu ? `<button class="btn btn-primary btn-lg" style="margin-top:20px;" onclick="promptCreatePlaylist()">
+            <i data-lucide="plus-circle"></i> Create Playlist
+          </button>` : `<button class="btn btn-outline btn-lg" style="margin-top:20px;" onclick="openAuthModal('login')">
+            <i data-lucide="log-in"></i> Log in to Create
+          </button>`}
+        </div>
+        <div class="ph-visual">
+          <div class="ph-card-stack">
+            <div class="ph-card" style="background:#CE1126; transform:rotate(-10deg) translate(-20px, 20px);">🎵</div>
+            <div class="ph-card" style="background:#FCC417; transform:rotate(0deg) translate(0, 0); z-index:2; font-size:48px;">🔥</div>
+            <div class="ph-card" style="background:#00522A; transform:rotate(10deg) translate(20px, 20px);">🎧</div>
           </div>
         </div>
-        <p class="pgc-desc">${pl.desc || ''}</p>
-        <div class="pgc-songs">
-          ${(pl.songs || []).slice(0,3).map(sid => {
-            const s = DB.Songs.find(sid);
-            const a = s ? DB.Users.find(s.artistId) : null;
-            return s ? `<div class="pgc-song" onclick="playSong('${sid}')">🎵 ${s.title} — ${a?.name||'?'}</div>` : '';
-          }).join('')}
-        </div>
-        <button class="btn btn-primary btn-sm btn-block" onclick="playPlaylist('${pl.id}')">▶ Play Playlist</button>
-      </div>`).join('')
-    : '<div class="empty-state"><div class="es-icon">🎶</div><p>No playlists yet</p></div>';
+      </div>
+      
+      <div class="section-hdr" style="margin-top: 40px;">
+        <h2 class="section-title">All Playlists</h2>
+      </div>
+      <div class="premium-playlist-grid">
+        ${gridHTML}
+      </div>
+    </div>
+  `;
+  if (window.lucide) lucide.createIcons();
 }
+
+window.promptCreatePlaylist = function() {
+  const cu = DB.Users.current();
+  if (!cu) return;
+  const name = prompt('Enter a name for your new playlist:');
+  if (!name) return;
+  
+  const colors = ['#CE1126', '#FCC417', '#00522A', '#0077b6', '#f72585', '#7b2d8b'];
+  const color = colors[Math.floor(Math.random() * colors.length)];
+  const emojis = ['🔥', '🎵', '🎧', '🎸', '🎹', '🥁', '🎷', '🎺', '🎻', '📻'];
+  const emoji = emojis[Math.floor(Math.random() * emojis.length)];
+
+  const pl = {
+    id: 'pl_' + Date.now(),
+    name,
+    desc: 'Created by ' + cu.username,
+    color,
+    emoji,
+    songs: [],
+    creatorId: cu.id,
+    createdAt: new Date().toISOString()
+  };
+  
+  DB.get().playlists.push(pl);
+  DB.save();
+  renderPlaylists();
+  showToast('Playlist created!', 'success');
+};
 
 // ── Artists grid ──────────────────────────────────────────────
 function renderArtists() {

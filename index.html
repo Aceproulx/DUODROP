@@ -146,10 +146,7 @@
 
   <!-- ════ PAGE: PLAYLISTS ════ -->
   <section class="page" id="page-playlists">
-    <div class="page-content">
-      <div class="page-hdr"><h1><i data-lucide="list-music"></i> Playlists</h1><p>Handcrafted vibes for every mood</p></div>
-      <div class="playlist-grid" id="playlists-grid"></div>
-    </div>
+    <!-- Handled fully by renderPlaylists() -->
   </section>
 
 
@@ -204,7 +201,10 @@
       <div class="upload-layout">
         <div class="upload-form-box">
           <form id="upload-form" onsubmit="submitUpload(event)" novalidate>
-            <div class="form-section">📋 Song Information</div>
+            <div class="upload-form-grid">
+              <!-- Left Column: Info -->
+              <div class="upload-col">
+                <div class="form-section">📋 Song Information</div>
             <div class="fg">
               <label>Song Title *</label>
               <input type="text" id="u-title" placeholder="Enter your song title">
@@ -249,7 +249,11 @@
               <label>Price (MK) — for Premium</label>
               <input type="number" id="u-price" placeholder="0 = free" min="0">
             </div>
-            <div class="form-section"><i data-lucide="music"></i> Audio File</div>
+              </div> <!-- End Left Column -->
+
+              <!-- Right Column: Media & Payment -->
+              <div class="upload-col">
+                <div class="form-section"><i data-lucide="music"></i> Audio File</div>
             <div class="file-drop" id="audio-drop" onclick="document.getElementById('u-audio').click()">
               <div class="fd-content" id="audio-fd-content">
                 <div class="fd-icon"><i data-lucide="music"></i></div>
@@ -336,6 +340,9 @@
               <div class="fe" id="err-u-agree"></div>
             </div>
 
+
+              </div> <!-- End Right Column -->
+            </div> <!-- End Grid -->
 
             <div id="upload-progress" style="display:none;">
               <div class="prog-bar"><div class="prog-fill" id="upload-bar-fill"></div></div>
