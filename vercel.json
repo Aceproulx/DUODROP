@@ -4,6 +4,26 @@
     {
       "src": "server/index.js",
       "use": "@vercel/node"
+    },
+    {
+      "src": "index.html",
+      "use": "@vercel/static"
+    },
+    {
+      "src": "css/**",
+      "use": "@vercel/static"
+    },
+    {
+      "src": "js/**",
+      "use": "@vercel/static"
+    },
+    {
+      "src": "images/**",
+      "use": "@vercel/static"
+    },
+    {
+      "src": "lib/**",
+      "use": "@vercel/static"
     }
   ],
   "routes": [
@@ -24,4 +44,5 @@
     }
   ]
 }
+
 
