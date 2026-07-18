@@ -24,7 +24,8 @@ function handleAudioFile(input) {
   _audioFile = file;
 
   const label = document.getElementById('audio-fd-content');
-  label.innerHTML = `<div class="fd-icon">✅</div><div class="fd-label">${escHtml(file.name)}</div><div class="fd-hint">${(file.size/1024/1024).toFixed(2)} MB</div>`;
+  label.innerHTML = `<div class="fd-icon"><i data-lucide="check-circle" style="color:var(--accent);"></i></div><div class="fd-label">${escHtml(file.name)}</div><div class="fd-hint">${(file.size/1024/1024).toFixed(2)} MB</div>`;
+  if (window.lucide) lucide.createIcons();
   document.getElementById('audio-drop').classList.add('has-file');
 
   // Try to read duration and setup preview
