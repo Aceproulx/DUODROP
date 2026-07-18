@@ -588,6 +588,7 @@ a:hover {
   max-width: 1200px;
   width: 100%;
   margin: 0 auto;
+  overflow-x: hidden;
 }
 
 .page-hdr {
@@ -1113,6 +1114,8 @@ a:hover {
   border-radius: 10px;
   cursor: pointer;
   transition: background .15s;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .song-row:hover { 
@@ -1149,7 +1152,8 @@ a:hover {
 
 .sr-info { 
   flex: 1; 
-  min-width: 0; 
+  min-width: 0;
+  overflow: hidden;
 }
 
 .sr-title { 
@@ -2877,8 +2881,8 @@ a:hover {
 
 /* ── Form fields ────────────────────────────────────────── */
 .settings-form {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: 16px;
 }
 
@@ -2892,6 +2896,12 @@ a:hover {
   font-size: 13px;
   font-weight: 600;
   color: var(--text-mid);
+}
+
+/* Full-width fields */
+.settings-field:has(.settings-textarea),
+.settings-save-btn {
+  grid-column: 1 / -1;
 }
 
 .settings-input {
@@ -2965,12 +2975,6 @@ a:hover {
   font-size: 11px;
   color: var(--text-dim);
   text-align: right;
-}
-
-.settings-form-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
 }
 
 .settings-save-btn {
@@ -4322,7 +4326,7 @@ a:hover {
   .settings-profile-meta {
     align-items: center;
   }
-  .settings-form-row {
+  .settings-form {
     grid-template-columns: 1fr;
   }
   .about-page-card {
@@ -4423,6 +4427,11 @@ a:hover {
   grid-template-columns: 1fr 320px;
   gap: 28px;
   align-items: start;
+  overflow: hidden;
+}
+
+.charts-layout > :first-child {
+  min-width: 0;
 }
 
 @media (max-width: 992px) {

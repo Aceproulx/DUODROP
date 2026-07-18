@@ -118,45 +118,43 @@ async function renderSettings() {
               </div>
             </div>
 
-            <div class="settings-form-row">
-              <div class="settings-field">
-                <label>Website</label>
-                <div class="settings-input-wrap">
-                  <input type="url" id="st-website" value="${cu.social?.website || ''}" placeholder="https://yoursite.com" class="settings-input" oninput="this.nextElementSibling.style.display='flex'">
-                  <button class="settings-input-action" onclick="saveProfile(); this.style.display='none'" title="Save changes" style="display:none">
-                    <i data-lucide="check"></i>
-                  </button>
-                </div>
-              </div>
-              <div class="settings-field">
-                <label>Facebook</label>
-                <div class="settings-input-wrap">
-                  <input type="text" id="st-fb" value="${cu.social?.facebook || ''}" placeholder="facebook.com/you" class="settings-input" oninput="this.nextElementSibling.style.display='flex'">
-                  <button class="settings-input-action" onclick="saveProfile(); this.style.display='none'" title="Save changes" style="display:none">
-                    <i data-lucide="check"></i>
-                  </button>
-                </div>
+            <div class="settings-field">
+              <label>Website</label>
+              <div class="settings-input-wrap">
+                <input type="url" id="st-website" value="${cu.social?.website || ''}" placeholder="https://yoursite.com" class="settings-input" oninput="this.nextElementSibling.style.display='flex'">
+                <button class="settings-input-action" onclick="saveProfile(); this.style.display='none'" title="Save changes" style="display:none">
+                  <i data-lucide="check"></i>
+                </button>
               </div>
             </div>
 
-            <div class="settings-form-row">
-              <div class="settings-field">
-                <label>Instagram</label>
-                <div class="settings-input-wrap">
-                  <input type="text" id="st-ig" value="${cu.social?.instagram || ''}" placeholder="@yourhandle" class="settings-input" oninput="this.nextElementSibling.style.display='flex'">
-                  <button class="settings-input-action" onclick="saveProfile(); this.style.display='none'" title="Save changes" style="display:none">
-                    <i data-lucide="check"></i>
-                  </button>
-                </div>
+            <div class="settings-field">
+              <label>Facebook</label>
+              <div class="settings-input-wrap">
+                <input type="text" id="st-fb" value="${cu.social?.facebook || ''}" placeholder="facebook.com/you" class="settings-input" oninput="this.nextElementSibling.style.display='flex'">
+                <button class="settings-input-action" onclick="saveProfile(); this.style.display='none'" title="Save changes" style="display:none">
+                  <i data-lucide="check"></i>
+                </button>
               </div>
-              <div class="settings-field">
-                <label>Twitter / X</label>
-                <div class="settings-input-wrap">
-                  <input type="text" id="st-tw" value="${cu.social?.twitter || ''}" placeholder="@yourhandle" class="settings-input" oninput="this.nextElementSibling.style.display='flex'">
-                  <button class="settings-input-action" onclick="saveProfile(); this.style.display='none'" title="Save changes" style="display:none">
-                    <i data-lucide="check"></i>
-                  </button>
-                </div>
+            </div>
+
+            <div class="settings-field">
+              <label>Instagram</label>
+              <div class="settings-input-wrap">
+                <input type="text" id="st-ig" value="${cu.social?.instagram || ''}" placeholder="@yourhandle" class="settings-input" oninput="this.nextElementSibling.style.display='flex'">
+                <button class="settings-input-action" onclick="saveProfile(); this.style.display='none'" title="Save changes" style="display:none">
+                  <i data-lucide="check"></i>
+                </button>
+              </div>
+            </div>
+
+            <div class="settings-field">
+              <label>Twitter / X</label>
+              <div class="settings-input-wrap">
+                <input type="text" id="st-tw" value="${cu.social?.twitter || ''}" placeholder="@yourhandle" class="settings-input" oninput="this.nextElementSibling.style.display='flex'">
+                <button class="settings-input-action" onclick="saveProfile(); this.style.display='none'" title="Save changes" style="display:none">
+                  <i data-lucide="check"></i>
+                </button>
               </div>
             </div>
           </div>
