@@ -4275,6 +4275,8 @@ a:hover {
 @media (max-width: 768px) {
   .sidebar {
     transform: translateX(-100%);
+    bottom: 0;
+    z-index: 300;
   }
   .sidebar.open {
     transform: translateX(0);

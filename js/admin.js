@@ -61,6 +61,7 @@ async function renderAdminDashboard() {
         ${renderAdminPending()}
       </div>
     `;
+    if (window.lucide) lucide.createIcons();
   } catch (err) {
     el.innerHTML = `<div class="empty-state"><div class="es-icon">❌</div><p>Error loading admin data: ${err.message}</p></div>`;
   }
@@ -126,6 +127,7 @@ function renderAdminSongs() {
                 <td>
                   ${s.status !== 'approved' ? `<button class="btn btn-sm btn-green" onclick="adminApproveSong('${s.id}')">✅ Approve</button>` : ''}
                   ${s.status !== 'rejected' ? `<button class="btn btn-sm btn-danger" onclick="adminRejectSong('${s.id}')">❌ Reject</button>` : ''}
+                  <button class="btn btn-sm btn-danger" onclick="adminDeleteSong('${s.id}', '${s.title.replace(/'/g, "\\'")}')">🗑 Delete</button>
                 </td>
               </tr>`;
           }).join('')}
@@ -136,7 +138,7 @@ function renderAdminSongs() {
 
 function renderAdminPending() {
   const pending = _adminData.pending;
-  if (!pending.length) return '<div class="empty-state"><div class="es-icon">✅</div><p>No pending songs — all clear!</p></div>';
+  if (!pending.length) return '<div class="empty-state"><div class="es-icon" style="color:#10b981;"><i data-lucide="check-circle"></i></div><p>No pending songs - all clear!</p></div>';
   return `
     <div class="admin-table-wrap">
       <table class="admin-table">
@@ -156,6 +158,7 @@ function renderAdminPending() {
                 <td>
                   <button class="btn btn-sm btn-green" onclick="adminApproveSong('${s.id}')">✅ Approve</button>
                   <button class="btn btn-sm btn-danger" onclick="adminRejectSong('${s.id}')">❌ Reject</button>
+                  <button class="btn btn-sm btn-danger" onclick="adminDeleteSong('${s.id}', '${s.title.replace(/'/g, "\\'")}')">🗑 Delete</button>
                 </td>
               </tr>`;
           }).join('')}
@@ -190,6 +193,18 @@ async function adminRejectSong(songId) {
   try {
     await window.API.admin.approveSong(songId, 'rejected');
     showToast(`❌ Song rejected`, 'error');
+    renderAdminDashboard();
+  } catch (err) {
+    showToast(err.message, 'error');
+  }
+}
+
+async function adminDeleteSong(songId, songTitle) {
+  if (!confirm(`Delete "${songTitle}"? This cannot be undone.`)) return;
+  if (!confirm(`Are you absolutely sure? The song will be permanently removed.`)) return;
+  try {
+    await window.API.admin.deleteSong(songId);
+    showToast(`🗑 "${songTitle}" deleted`, 'success');
     renderAdminDashboard();
   } catch (err) {
     showToast(err.message, 'error');
