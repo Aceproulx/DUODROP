@@ -617,6 +617,7 @@ a:hover {
   position: relative;
   overflow: hidden;
   flex-shrink: 0;
+  flex-wrap: wrap;
 }
 
 .hero-badge {
