@@ -50,7 +50,7 @@ function renderCharts() {
         </span>`).join('')}
     </div>
 
-    <div style="display:grid; grid-template-columns: 1fr 320px; gap:28px; align-items:start;">
+    <div class="charts-layout">
       <!-- Main chart list -->
       <div>
         <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:16px;">

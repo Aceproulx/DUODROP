@@ -1189,6 +1189,26 @@ a:hover {
   gap: 4px; 
 }
 
+@media (max-width: 600px) {
+  .song-row {
+    padding: 8px;
+    gap: 8px;
+  }
+  .sr-rank {
+    width: 20px;
+    font-size: 11px;
+  }
+  .sr-plays {
+    display: none;
+  }
+  .sr-acts {
+    gap: 2px;
+  }
+  .sr-acts .icon-btn {
+    padding: 4px;
+  }
+}
+
 .badge-prem { 
   font-size: 10px; 
   background: var(--gold); 
@@ -4119,10 +4139,16 @@ a:hover {
   transform: translateX(4px); 
 }
 
-@media (max-width: 900px) {
-  #charts-content > div > div[style*="grid-template-columns"] {
-    display: flex !important;
-    flex-direction: column !important;
+.charts-layout {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 28px;
+  align-items: start;
+}
+
+@media (max-width: 992px) {
+  .charts-layout {
+    grid-template-columns: 1fr;
   }
 }
 
