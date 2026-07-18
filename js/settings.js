@@ -54,24 +54,48 @@ async function renderSettings() {
         </div>
         <div class="settings-card">
           <div class="settings-profile-header">
-            <div class="settings-avatar-wrap" onclick="document.getElementById('settings-avatar-input').click()">
-              <div class="settings-avatar" id="settings-pp-preview">
-                ${cu.avatar
-                  ? `<img src="${cu.avatar}" alt="Profile">`
-                  : `<span>${cu.username.slice(0, 2).toUpperCase()}</span>`}
+            <div class="sph-left" style="display: flex; align-items: center; gap: 20px;">
+              <div class="settings-avatar-wrap" onclick="document.getElementById('settings-avatar-input').click()">
+                <div class="settings-avatar" id="settings-pp-preview">
+                  ${cu.avatar
+                    ? `<img src="${cu.avatar}" alt="Profile">`
+                    : `<span>${cu.username.slice(0, 2).toUpperCase()}</span>`}
+                </div>
+                <div class="settings-avatar-overlay">
+                  <i data-lucide="camera"></i>
+                </div>
               </div>
-              <div class="settings-avatar-overlay">
-                <i data-lucide="camera"></i>
+              <input type="file" id="settings-avatar-input" accept="image/*" style="display:none" onchange="handleSettingsAvatar(this)">
+              <div class="settings-profile-meta">
+                <div class="settings-profile-name">${cu.name || cu.username}</div>
+                <div class="settings-profile-role">
+                  <i data-lucide="${cu.role === 'artist' ? 'mic-2' : cu.role === 'admin' ? 'shield' : 'headphones'}"></i>
+                  ${cu.role === 'artist' ? 'Artist' : cu.role === 'admin' ? 'Administrator' : 'Fan'}
+                </div>
+                <div class="settings-profile-joined">Joined ${new Date(cu.createdAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}</div>
               </div>
             </div>
-            <input type="file" id="settings-avatar-input" accept="image/*" style="display:none" onchange="handleSettingsAvatar(this)">
-            <div class="settings-profile-meta">
-              <div class="settings-profile-name">${cu.name || cu.username}</div>
-              <div class="settings-profile-role">
-                <i data-lucide="${cu.role === 'artist' ? 'mic-2' : cu.role === 'admin' ? 'shield' : 'headphones'}"></i>
-                ${cu.role === 'artist' ? 'Artist' : cu.role === 'admin' ? 'Administrator' : 'Fan'}
+
+            <div class="sph-right settings-inline-notifs" style="background: var(--card2); padding: 16px; border-radius: 12px; border: 1px solid var(--border); min-width: 260px;">
+              <div style="font-size:12px; font-weight:700; color:var(--text-mid); margin-bottom:12px; text-transform:uppercase; letter-spacing:1px; display:flex; align-items:center; gap:6px;">
+                <i data-lucide="bell" style="width:14px; height:14px;"></i> Notifications
               </div>
-              <div class="settings-profile-joined">Joined ${new Date(cu.createdAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}</div>
+              <label class="cb-label" style="display:flex; align-items:center; gap:8px; margin-bottom:8px; cursor:pointer;">
+                <input type="checkbox" id="notif-follow" ${nf ? 'checked' : ''} onchange="saveSettingsFromUI()">
+                <span style="font-size:13px;">New followers</span>
+              </label>
+              <label class="cb-label" style="display:flex; align-items:center; gap:8px; margin-bottom:8px; cursor:pointer;">
+                <input type="checkbox" id="notif-comment" ${nc ? 'checked' : ''} onchange="saveSettingsFromUI()">
+                <span style="font-size:13px;">New comments</span>
+              </label>
+              <label class="cb-label" style="display:flex; align-items:center; gap:8px; margin-bottom:8px; cursor:pointer;">
+                <input type="checkbox" id="notif-earn" ${ne ? 'checked' : ''} onchange="saveSettingsFromUI()">
+                <span style="font-size:13px;">Earnings milestones</span>
+              </label>
+              <label class="cb-label" style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+                <input type="checkbox" id="notif-release" ${nr ? 'checked' : ''} onchange="saveSettingsFromUI()">
+                <span style="font-size:13px;">New releases</span>
+              </label>
             </div>
           </div>
 
@@ -328,43 +352,7 @@ async function renderSettings() {
         </div>
       </div>
 
-      <!-- ── Notifications Section ─────────────────────────── -->
-      <div class="settings-section">
-        <div class="settings-section-title">
-          <i data-lucide="bell"></i>
-          <span>Notifications</span>
-        </div>
-        <div class="settings-card">
-          <div class="setting-row">
-            <div class="setting-row-info">
-              <i data-lucide="user-plus"></i>
-              <div><strong>New followers</strong></div>
-            </div>
-            <label class="toggle"><input type="checkbox" id="notif-follow" ${nf ? 'checked' : ''} onchange="saveSettingsFromUI()"><span class="toggle-slider"></span></label>
-          </div>
-          <div class="setting-row">
-            <div class="setting-row-info">
-              <i data-lucide="message-circle"></i>
-              <div><strong>New comments</strong></div>
-            </div>
-            <label class="toggle"><input type="checkbox" id="notif-comment" ${nc ? 'checked' : ''} onchange="saveSettingsFromUI()"><span class="toggle-slider"></span></label>
-          </div>
-          <div class="setting-row">
-            <div class="setting-row-info">
-              <i data-lucide="banknote"></i>
-              <div><strong>Earnings milestones</strong></div>
-            </div>
-            <label class="toggle"><input type="checkbox" id="notif-earn" ${ne ? 'checked' : ''} onchange="saveSettingsFromUI()"><span class="toggle-slider"></span></label>
-          </div>
-          <div class="setting-row">
-            <div class="setting-row-info">
-              <i data-lucide="disc-3"></i>
-              <div><strong>New releases from followed artists</strong></div>
-            </div>
-            <label class="toggle"><input type="checkbox" id="notif-release" ${nr ? 'checked' : ''} onchange="saveSettingsFromUI()"><span class="toggle-slider"></span></label>
-          </div>
-        </div>
-      </div>
+
 
       <!-- ── Danger Zone ───────────────────────────────────── -->
       <div class="settings-section">
