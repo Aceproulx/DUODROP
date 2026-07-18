@@ -182,4 +182,5 @@ const API = {
   },
 };
 
-window.API = API;
+window.API    = API;
+window._fetch = _fetch;

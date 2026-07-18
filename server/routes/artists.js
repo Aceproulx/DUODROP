@@ -72,4 +72,38 @@ router.post('/:id/follow', requireAuth, async (req, res) => {
   }
 });
 
+// ── Self-register as artist (fan → artist upgrade) ───────────
+router.post('/register', requireAuth, async (req, res) => {
+  try {
+    const uid = req.user.localId;
+
+    // Fetch user profile
+    const userProfile = await dbGet(`users/${uid}`, req.idToken);
+    if (!userProfile) return res.status(404).json({ error: 'User profile not found' });
+
+    // Idempotent — if already an artist node, just return success
+    const existing = await dbGet(`artists/${uid}`);
+    if (!existing) {
+      await dbSet(`artists/${uid}`, {
+        id:        uid,
+        username:  userProfile.username || '',
+        name:      userProfile.name || '',
+        avatar:    userProfile.avatar || '',
+        bio:       userProfile.bio || '',
+        followers: 0,
+        verified:  false,
+        createdAt: new Date().toISOString(),
+      }, req.idToken);
+    }
+
+    // Ensure role is set to artist in users node
+    await dbUpdate(`users/${uid}`, { role: 'artist' }, req.idToken);
+
+    res.json({ message: 'Artist account activated', artistId: uid });
+  } catch (err) {
+    console.error('[artists/register]', err.message);
+    res.status(500).json({ error: 'Failed to register artist account' });
+  }
+});
+
 module.exports = router;

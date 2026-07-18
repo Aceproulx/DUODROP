@@ -112,10 +112,12 @@ router.post('/login', async (req, res) => {
     const { email, password, cfToken } = req.body;
     if (!email || !password) return res.status(400).json({ error: 'Email and password required' });
 
-    // Verify Captcha
-    const isHuman = await verifyTurnstile(cfToken);
-    if (!isHuman) {
-      return res.status(400).json({ error: 'Captcha verification failed. Please try again.' });
+    // Verify Captcha only if a token was sent (captcha optional on login)
+    if (cfToken) {
+      const isHuman = await verifyTurnstile(cfToken);
+      if (!isHuman) {
+        return res.status(400).json({ error: 'Captcha verification failed. Please try again.' });
+      }
     }
 
     const authData = await signIn(email, password);

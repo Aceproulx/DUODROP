@@ -441,7 +441,7 @@ function setAccentColor(color) {
 }
 
 // ── Profile save ──────────────────────────────────────────────
-function saveProfile() {
+async function saveProfile() {
   const cu = DB.Users.current();
   if (!cu) return;
 
@@ -450,7 +450,7 @@ function saveProfile() {
     try { new URL(website); } catch { showToast('Website must be a valid URL', 'error'); return; }
   }
 
-  DB.Users.update(cu.id, {
+  const updates = {
     name:   document.getElementById('st-name')?.value.trim() || cu.name,
     bio:    document.getElementById('st-bio')?.value.trim().slice(0, 300) || '',
     phone:  document.getElementById('st-phone')?.value.trim() || '',
@@ -460,10 +460,22 @@ function saveProfile() {
       instagram: document.getElementById('st-ig')?.value.trim()  || '',
       twitter:   document.getElementById('st-tw')?.value.trim()  || '',
     },
-  });
+  };
 
+  // Save locally for instant UI
+  DB.Users.update(cu.id, updates);
   updateUserUI();
-  showToast('✅ Profile saved!', 'success');
+
+  // Persist to server/Firebase
+  try {
+    const result = await API.auth.updateProfile(updates);
+    if (result.user) {
+      localStorage.setItem('dd_user', JSON.stringify(result.user));
+    }
+    showToast('✅ Profile saved!', 'success');
+  } catch (err) {
+    showToast('Profile saved locally but sync failed: ' + err.message, 'error');
+  }
 }
 
 function handleSettingsAvatar(input) {
@@ -500,14 +512,31 @@ function changePassword() {
   showToast('🔑 Password updated!', 'success');
 }
 
-function upgradeToArtist() {
+async function upgradeToArtist() {
   const cu = DB.Users.current();
   if (!cu) return;
-  if (confirm('Switch your account to an Artist account? You\'ll be able to upload music and earn kwacha.')) {
-    DB.Users.update(cu.id, { role: 'artist' });
-    updateUserUI();
-    showToast('🎤 You are now an artist! Go upload your music.', 'success');
-    renderSettings();
+  if (!confirm('Switch your account to an Artist account? You\'ll be able to upload music and earn kwacha.')) return;
+
+  // Optimistic local update
+  DB.Users.update(cu.id, { role: 'artist' });
+  updateUserUI();
+  renderSettings();
+  showToast('🎤 Upgrading your account…', 'info');
+
+  try {
+    // Persist role change to Firebase
+    const result = await API.auth.updateProfile({ role: 'artist' });
+    if (result.user) {
+      localStorage.setItem('dd_user', JSON.stringify(result.user));
+    }
+
+    // Create artist node in DB so you appear in the artists list
+    await _fetch('/api/artists/register', { method: 'POST', body: JSON.stringify({}) });
+
+    showToast('🎤 You are now an Artist! Go upload your music.', 'success');
+  } catch (err) {
+    console.error('[upgradeToArtist]', err);
+    showToast('Role saved locally. Sync failed: ' + err.message, 'error');
   }
 }
 
