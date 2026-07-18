@@ -1444,44 +1444,65 @@ a:hover {
 .info-card {
   background: var(--card);
   border-radius: var(--radius);
-  padding: 20px;
+  padding: 24px;
   border: 1px solid var(--border);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.info-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.3);
 }
 
 .info-card h3 { 
-  font-size: 14px; 
+  font-size: 15px; 
   font-weight: 700; 
-  margin-bottom: 12px; 
+  margin-bottom: 16px; 
+  color: var(--text);
+  display: flex;
+  align-items: center;
 }
-
 
 .check-list { 
   list-style: none; 
   display: flex; 
   flex-direction: column; 
-  gap: 6px; 
+  gap: 10px; 
 }
 
 .check-list li { 
-  font-size: 13px; 
+  font-size: 14px; 
   color: var(--text-mid); 
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .earn-list { 
   display: flex; 
   flex-direction: column; 
-  gap: 12px; 
+  gap: 16px; 
 }
 
 .earn-item { 
   display: flex; 
-  gap: 12px; 
+  gap: 14px; 
   align-items: flex-start; 
 }
 
 .earn-ic { 
-  font-size: 24px; 
-  flex-shrink: 0; 
+  font-size: 18px; 
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--card2);
+  border-radius: 50%;
+  color: var(--accent);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
 }
 
 .earn-item strong { 
@@ -1495,16 +1516,21 @@ a:hover {
 
 .pay-logos { 
   display: flex; 
-  gap: 8px; 
+  gap: 10px; 
   flex-wrap: wrap; 
 }
 
 .pay-logo { 
   background: var(--card2); 
   border: 1px solid var(--border); 
-  padding: 8px 14px; 
+  padding: 10px 16px; 
   border-radius: 8px; 
-  font-size: 12px; 
+  font-size: 13px; 
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  color: var(--text);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
 }
 
 .payment-notice {

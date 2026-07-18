@@ -27,14 +27,21 @@ function handleAudioFile(input) {
   label.innerHTML = `<div class="fd-icon">✅</div><div class="fd-label">${escHtml(file.name)}</div><div class="fd-hint">${(file.size/1024/1024).toFixed(2)} MB</div>`;
   document.getElementById('audio-drop').classList.add('has-file');
 
-  // Try to read duration
+  // Try to read duration and setup preview
   const url = URL.createObjectURL(file);
   const tmpAudio = new Audio(url);
   tmpAudio.onloadedmetadata = () => {
     const dur = fmtTime(tmpAudio.duration);
     label.innerHTML += `<div class="fd-hint">Duration: ${dur}</div>`;
-    URL.revokeObjectURL(url);
+    // We do NOT revoke the object URL here because we need it for the preview player
   };
+  
+  // Set up preview player
+  const preview = document.getElementById('audio-preview');
+  if (preview) {
+    preview.src = url;
+    preview.style.display = 'block';
+  }
 }
 
 function handleArtwork(input) {
@@ -96,7 +103,18 @@ function submitUpload(e) {
   const type     = document.getElementById('u-type').value;
   const price    = parseFloat(document.getElementById('u-price').value || 0);
   const txref    = document.getElementById('u-txref').value.trim();
-  const amount   = parseFloat(document.getElementById('u-amount').value || 0);
+  
+  // Amount paid checkbox logic
+  const amountCb = document.getElementById('u-amount-cb');
+  let amount = 0;
+  if (amountCb && amountCb.checked) {
+    amount = 5000;
+    // Set hidden field so zod validation (which might check id 'u-amount') passes if it expects a number
+    document.getElementById('u-amount').value = 5000;
+  } else {
+    document.getElementById('u-amount').value = 0;
+  }
+
   const agree    = document.getElementById('u-agree').checked;
 
   // Zod schema validation
@@ -203,6 +221,13 @@ function _resetUploadForm() {
   _artworkUrl  = '';
   document.getElementById('audio-fd-content').innerHTML =
     '<div class="fd-icon"><i data-lucide="music"></i></div><div class="fd-label">Drop audio here or <span>click to browse</span></div><div class="fd-hint">MP3, WAV, FLAC, AAC — max 50 MB</div>';
+  
+  const preview = document.getElementById('audio-preview');
+  if (preview) {
+    preview.style.display = 'none';
+    preview.src = '';
+  }
+
   document.getElementById('art-preview-inner').innerHTML =
     '<div class="fd-icon"><i data-lucide="image"></i></div><div class="fd-label">Click to upload artwork</div><div class="fd-hint">JPG or PNG — min 500×500px</div>';
   ['audio-drop','art-drop'].forEach(id => document.getElementById(id)?.classList.remove('has-file'));

@@ -255,6 +255,7 @@
                 <div class="fd-label">Drop audio here or <span>click to browse</span></div>
                 <div class="fd-hint">MP3, WAV, FLAC, AAC — max 50 MB</div>
               </div>
+              <audio id="audio-preview" controls style="display:none; width:100%; margin-top:10px;" onclick="event.stopPropagation()"></audio>
             </div>
 
 
@@ -289,7 +290,11 @@
 
               <div class="fg">
                 <label>Amount Paid (MK) *</label>
-                <input type="number" id="u-amount" placeholder="5000" min="5000">
+                <label class="cb-label" style="margin-top: 8px;">
+                  <input type="checkbox" id="u-amount-cb">
+                  I have paid MK 5,000 for this upload
+                </label>
+                <input type="hidden" id="u-amount" value="0">
                 <div class="fe" id="err-u-amount"></div>
               </div>
             </div>
@@ -326,59 +331,55 @@
           <div class="info-card">
             <div class="section-hdr"><h2 class="section-title"><i data-lucide="clipboard-list"></i> Upload Guidelines</h2></div>
             <ul class="check-list">
-              <li>✅ Audio must be your original work</li>
-              <li>✅ File size: max 50 MB per song</li>
-              <li>✅ Formats: MP3, WAV, FLAC, AAC</li>
-              <li>✅ Artwork: min 500×500 pixels</li>
-              <li>✅ Clear, professional audio quality</li>
-              <li>❌ No copyrighted material</li>
-              <li>❌ No plagiarism or covers without licence</li>
+              <li><i data-lucide="check-circle" style="color:var(--accent); width:14px;"></i> Audio must be your original work</li>
+              <li><i data-lucide="check-circle" style="color:var(--accent); width:14px;"></i> File size: max 50 MB per song</li>
+              <li><i data-lucide="check-circle" style="color:var(--accent); width:14px;"></i> Formats: MP3, WAV, FLAC, AAC</li>
+              <li><i data-lucide="check-circle" style="color:var(--accent); width:14px;"></i> Artwork: min 500×500 pixels</li>
+              <li><i data-lucide="check-circle" style="color:var(--accent); width:14px;"></i> Clear, professional audio quality</li>
+              <li><i data-lucide="x-circle" style="color:var(--danger, #ff4d4f); width:14px;"></i> No copyrighted material</li>
+              <li><i data-lucide="x-circle" style="color:var(--danger, #ff4d4f); width:14px;"></i> No plagiarism or covers without licence</li>
             </ul>
           </div>
 
           <div class="info-card">
-            <h3>💰 How You Earn</h3>
+            <h3><i data-lucide="coins" style="vertical-align: middle; margin-right: 6px;"></i> How You Earn</h3>
 
             <div class="earn-list">
-              <div class="earn-item"><span class="earn-ic">🎵</span>
+              <div class="earn-item"><span class="earn-ic"><i data-lucide="music"></i></span>
                 <div><strong>MK 1 per full play</strong>
                   <p>Every completed stream of your song</p>
                 </div>
               </div>
 
-              <div class="earn-item"><span class="earn-ic">👥</span>
+              <div class="earn-item"><span class="earn-ic"><i data-lucide="users"></i></span>
                 <div><strong>100 followers required</strong>
                   <p>Reach 100 followers to enable earnings</p>
                 </div>
               </div>
 
-              <div class="earn-item"><span class="earn-ic">📊</span>
+              <div class="earn-item"><span class="earn-ic"><i data-lucide="bar-chart-2"></i></span>
                 <div><strong>1,000 plays to withdraw</strong>
                   <p>Minimum per song before cash-out</p>
                 </div>
               </div>
 
-
-              <div class="earn-item"><span class="earn-ic">🔗</span>
+              <div class="earn-item"><span class="earn-ic"><i data-lucide="link"></i></span>
                 <div><strong>Fans earn MK 2/share</strong>
                   <p>Fans get MK 2 when new users register via their referral link</p>
                 </div>
-
               </div>
-
             </div>
-
           </div>
 
-
           <div class="info-card">
-            <h3>📱 Payment Partners</h3>
+            <h3><i data-lucide="smartphone" style="vertical-align: middle; margin-right: 6px;"></i> Payment Partners</h3>
 
             <div class="pay-logos">
-              <div class="pay-logo">🏦 National Bank</div>
-              <div class="pay-logo">📱 Airtel Money</div>
-              <div class="pay-logo">📱 Mpamba/TNM</div>
+              <div class="pay-logo"><i data-lucide="landmark" style="width:14px; margin-right:4px;"></i> National Bank</div>
+              <div class="pay-logo"><i data-lucide="smartphone" style="width:14px; margin-right:4px;"></i> Airtel Money</div>
+              <div class="pay-logo"><i data-lucide="smartphone" style="width:14px; margin-right:4px;"></i> Mpamba/TNM</div>
             </div>
+          </div>
 
           </div>
 
