@@ -30,6 +30,7 @@ function showPage(name) {
     settings:        renderSettings,
     profile:         renderMyProfile,
     admin:           renderAdminDashboard,
+    about:           renderAbout,
   };
   if (refreshers[name]) refreshers[name]();
 }
@@ -234,6 +235,15 @@ function logout() {
   showToast('Signed out. See you soon!', 'info');
   showPage('discover');
 }
+
+window.handleAvatarClick = function() {
+  const user = DB.Users.current();
+  if (user) {
+    showPage('profile');
+  } else {
+    openAuthModal('login');
+  }
+};
 
 function updateUserUI() {
   const user = DB.Users.current();
