@@ -128,7 +128,7 @@ function renderAdminSongs() {
                 <td><span class="status-badge ${s.status || 'pending'}">${s.status || 'pending'}</span></td>
                 <td>
                   <div class="admin-actions">
-                    <button class="admin-kebab" onclick="toggleAdminDropdown(event, this)" title="Actions">&#8942;</button>
+                    <button class="admin-kebab" onclick="toggleAdminDropdown(event, this)" title="Actions"><i data-lucide="ellipsis-vertical"></i></button>
                     <div class="admin-dropdown">
                       ${!isApproved ? `<button class="admin-dropdown-item" data-action="approve" onclick="closeAllAdminDropdowns();adminApproveSong('${s.id}')"><i data-lucide="check-circle"></i> Approve</button>` : ''}
                       ${!isRejected ? `<button class="admin-dropdown-item" data-action="reject" onclick="closeAllAdminDropdowns();adminRejectSong('${s.id}')"><i data-lucide="x-circle"></i> Reject</button>` : ''}
@@ -165,7 +165,7 @@ function renderAdminPending() {
                 <td>${s.createdAt ? new Date(s.createdAt).toLocaleDateString() : '—'}</td>
                 <td>
                   <div class="admin-actions">
-                    <button class="admin-kebab" onclick="toggleAdminDropdown(event, this)" title="Actions">&#8942;</button>
+                    <button class="admin-kebab" onclick="toggleAdminDropdown(event, this)" title="Actions"><i data-lucide="ellipsis-vertical"></i></button>
                     <div class="admin-dropdown">
                       <button class="admin-dropdown-item" data-action="approve" onclick="closeAllAdminDropdowns();adminApproveSong('${s.id}')"><i data-lucide="check-circle"></i> Approve</button>
                       <button class="admin-dropdown-item" data-action="reject" onclick="closeAllAdminDropdowns();adminRejectSong('${s.id}')"><i data-lucide="x-circle"></i> Reject</button>

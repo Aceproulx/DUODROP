@@ -4216,9 +4216,12 @@ a:hover {
   justify-content: center;
   cursor: pointer;
   transition: all .15s;
-  font-size: 16px;
-  line-height: 1;
-  letter-spacing: 1px;
+  padding: 0;
+}
+
+.admin-kebab [data-lucide] {
+  width: 18px;
+  height: 18px;
 }
 
 .admin-kebab:hover {
