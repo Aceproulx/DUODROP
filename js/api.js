@@ -82,8 +82,26 @@ const API = {
       return data;
     },
 
+    async updateUsername(username) {
+      const data = await _fetch('/api/auth/username', { method: 'PATCH', body: JSON.stringify({ username }) });
+      if (data.user) localStorage.setItem('dd_user', JSON.stringify(data.user));
+      return data;
+    },
+
+    async saveSettings(prefs) {
+      return _fetch('/api/auth/settings', { method: 'PATCH', body: JSON.stringify(prefs) });
+    },
+
+    async getSettings() {
+      return _fetch('/api/auth/settings');
+    },
+
     logout() {
       _token.clear();
+    },
+
+    deleteAccount() {
+      return _fetch('/api/auth/account', { method: 'DELETE' });
     },
 
     currentUser() {

@@ -375,10 +375,13 @@ async function renderSettings() {
           <span>Danger Zone</span>
         </div>
         <div class="settings-card settings-danger-card">
-          <p class="dim">These actions are permanent and cannot be undone.</p>
+          <div class="settings-danger-notice">
+            <i data-lucide="info"></i>
+            <span>Deleting your account is permanent and cannot be undone. All your data, songs, and earnings will be removed.</span>
+          </div>
           <div class="settings-danger-actions">
-            <button class="btn btn-danger btn-block" onclick="clearAllData()">
-              <i data-lucide="trash-2"></i> Clear All Data (Reset App)
+            <button class="btn btn-danger btn-block" onclick="deleteAccount()">
+              <i data-lucide="user-x"></i> Delete Account
             </button>
             <button class="btn btn-ghost btn-block" onclick="logout()">
               <i data-lucide="log-out"></i> Sign Out
@@ -642,7 +645,7 @@ function openPolicyModal(type) {
           <p>Go to Settings, Profile and click on your avatar image to upload a new photo.</p>
 
           <h3>The app is not working correctly</h3>
-          <p>Try refreshing the page. If problems persist, go to Settings, Danger Zone, Clear All Data to reset. Then contact us at 0888 240 630.</p>
+          <p>Try refreshing the page. If problems persist, contact us at 0888 240 630 for assistance.</p>
 
           <h2>Contact Support</h2>
           <p><strong>Phone / WhatsApp: 0888 240 630</strong><br>
@@ -927,12 +930,37 @@ async function upgradeToArtist() {
   }
 }
 
-function clearAllData() {
-  if (!confirm('This will delete ALL data including songs, users, and earnings. Are you sure?')) return;
-  if (!confirm('This is permanent. Continue?')) return;
-  localStorage.clear();
-  showToast('All data cleared. Reloading...', 'info');
-  setTimeout(() => location.reload(), 1500);
+// ── Delete Account ──────────────────────────────────────────
+async function deleteAccount() {
+  const cu = DB.Users.current();
+  if (!cu) return;
+
+  // First confirmation
+  if (!confirm('Are you sure you want to delete your account? This will permanently remove all your data, songs, earnings, and profile.')) return;
+  // Second confirmation
+  if (!confirm('This action CANNOT be undone. Type "DELETE" in your mind and click OK to proceed.')) return;
+
+  showToast('Deleting your account...', 'info');
+
+  try {
+    // Delete from Firebase backend
+    if (API.auth.isLoggedIn()) {
+      await API.auth.deleteAccount();
+    }
+
+    // Clear local data
+    localStorage.removeItem('dd_token');
+    localStorage.removeItem('dd_refresh');
+    localStorage.removeItem('dd_user');
+    localStorage.removeItem('duodrop_v2');
+    localStorage.clear();
+
+    showToast('Account deleted. You will be signed out.', 'success');
+    setTimeout(() => location.reload(), 1500);
+  } catch (err) {
+    console.error('[deleteAccount]', err);
+    showToast('Failed to delete account: ' + err.message + '. Contact support if this persists.', 'error');
+  }
 }
 
 // ── About page renderer ────────────────────────────────────────

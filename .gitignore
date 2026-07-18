@@ -31,3 +31,5 @@ Thumbs.db
 dist/
 build/
 out/
+
+server/create-admin.js

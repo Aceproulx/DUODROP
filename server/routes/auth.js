@@ -170,6 +170,95 @@ router.patch('/profile', requireAuth, async (req, res) => {
   }
 });
 
+// PATCH /api/auth/settings — save user preferences to Firebase
+router.patch('/settings', requireAuth, async (req, res) => {
+  try {
+    const { theme, accentColor, audio, notifications } = req.body;
+    const prefs = {};
+    if (theme !== undefined) prefs.theme = theme;
+    if (accentColor !== undefined) prefs.accentColor = accentColor;
+    if (audio !== undefined) prefs.audio = audio;
+    if (notifications !== undefined) prefs.notifications = notifications;
+
+    await dbUpdate(`users/${req.user.localId}/settings`, prefs, req.idToken);
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to save settings' });
+  }
+});
+
+// GET /api/auth/settings — fetch user preferences
+router.get('/settings', requireAuth, async (req, res) => {
+  try {
+    const settings = await dbGet(`users/${req.user.localId}/settings`, req.idToken);
+    res.json({ settings: settings || {} });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch settings' });
+  }
+});
+
+// PATCH /api/auth/username — change username
+router.patch('/username', requireAuth, async (req, res) => {
+  try {
+    const { username } = req.body;
+    if (!username || username.length < 3) {
+      return res.status(400).json({ error: 'Username must be at least 3 characters' });
+    }
+    if (!/^[a-zA-Z0-9_]+$/.test(username)) {
+      return res.status(400).json({ error: 'Username can only contain letters, numbers, and underscores' });
+    }
+
+    // Check username uniqueness
+    const allUsers = await dbGet('users', req.idToken);
+    if (allUsers) {
+      const taken = Object.values(allUsers).find(u => u.username?.toLowerCase() === username.toLowerCase() && u.id !== req.user.localId);
+      if (taken) {
+        return res.status(400).json({ error: 'Username is already taken' });
+      }
+    }
+
+    const refCode = 'REF-' + username.toUpperCase().slice(0, 8) + Math.floor(Math.random() * 999);
+    await dbUpdate(`users/${req.user.localId}`, { username, refCode }, req.idToken);
+    const updated = await dbGet(`users/${req.user.localId}`, req.idToken);
+    res.json({ user: updated });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to update username' });
+  }
+});
+
+// DELETE /api/auth/account — delete user account and all data
+router.delete('/account', requireAuth, async (req, res) => {
+  try {
+    const uid_val = req.user.localId;
+    const idToken = req.idToken;
+
+    // Delete user data from RTDB
+    await Promise.allSettled([
+      dbDelete(`users/${uid_val}`, idToken),
+      dbDelete(`artists/${uid_val}`, idToken),
+      dbDelete(`fanEarnings/${uid_val}`, idToken),
+      dbDelete(`settings/${uid_val}`, idToken).catch(() => {}),
+    ]);
+
+    // Delete Firebase Auth account via REST API
+    const WEB_API_KEY = process.env.FIREBASE_WEB_API_KEY;
+    if (WEB_API_KEY) {
+      try {
+        await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:delete?key=${WEB_API_KEY}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ idToken }),
+        });
+      } catch (_) { /* RTDB data already deleted — auth deletion is best-effort */ }
+    }
+
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('[deleteAccount]', err.message);
+    res.status(500).json({ error: 'Failed to delete account' });
+  }
+});
+
 // POST /api/auth/refresh
 router.post('/refresh', async (req, res) => {
   try {
