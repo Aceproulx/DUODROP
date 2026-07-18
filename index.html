@@ -530,11 +530,12 @@
           </div>
         </div>
         <!-- Cloudflare Turnstile Captcha -->
-        <div class="turnstile-wrap">
+        <div class="turnstile-wrap captcha-loading">
           <div class="cf-turnstile"
                id="login-turnstile"
                data-sitekey="0x4AAAAAAD0fMAOYp-EoILqc"
                data-callback="onLoginTurnstileSuccess"
+               data-before-interactive-callback="onLoginTurnstileBeforeInteractive"
                data-error-callback="onTurnstileError"
                data-theme="dark"
                data-size="flexible">
@@ -611,11 +612,12 @@
         </div>
 
         <!-- Cloudflare Turnstile Captcha -->
-        <div class="turnstile-wrap">
+        <div class="turnstile-wrap captcha-loading">
           <div class="cf-turnstile"
                id="reg-turnstile"
                data-sitekey="0x4AAAAAAD0fMAOYp-EoILqc"
                data-callback="onRegTurnstileSuccess"
+               data-before-interactive-callback="onRegTurnstileBeforeInteractive"
                data-error-callback="onTurnstileError"
                data-theme="dark"
                data-size="flexible">

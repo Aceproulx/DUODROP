@@ -76,17 +76,28 @@ document.addEventListener('keydown', e => {
 let _loginCaptchaToken = null;
 let _regCaptchaToken   = null;
 
+// Called by Turnstile before the widget becomes interactive (still loading)
+function onLoginTurnstileBeforeInteractive() {
+  document.getElementById('login-turnstile')?.closest('.turnstile-wrap')?.classList.add('captcha-loading');
+}
+function onRegTurnstileBeforeInteractive() {
+  document.getElementById('reg-turnstile')?.closest('.turnstile-wrap')?.classList.add('captcha-loading');
+}
+
 function onLoginTurnstileSuccess(token) {
   _loginCaptchaToken = token;
   document.getElementById('err-login-captcha').textContent = '';
+  document.getElementById('login-turnstile')?.closest('.turnstile-wrap')?.classList.remove('captcha-loading');
 }
 function onRegTurnstileSuccess(token) {
   _regCaptchaToken = token;
   document.getElementById('err-reg-captcha').textContent = '';
+  document.getElementById('reg-turnstile')?.closest('.turnstile-wrap')?.classList.remove('captcha-loading');
 }
 function onTurnstileError() {
   _loginCaptchaToken = null;
   _regCaptchaToken = null;
+  document.querySelectorAll('.turnstile-wrap').forEach(w => w.classList.remove('captcha-loading'));
   showToast('Captcha verification failed. Please try again.', 'error');
 }
 

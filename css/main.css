@@ -3336,4 +3336,28 @@ a:hover {
   display: flex;
   justify-content: center;
   min-height: 65px;
+  position: relative;
 }
+
+/* While captcha iframe is loading, don't let it block clicks on buttons */
+.turnstile-wrap.captcha-loading {
+  pointer-events: none;
+}
+.turnstile-wrap.captcha-loading::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 8px;
+  background: rgba(255,255,255,0.04);
+  animation: captcha-pulse 1.5s ease-in-out infinite;
+}
+@keyframes captcha-pulse {
+  0%, 100% { opacity: 0.4; }
+  50%       { opacity: 1; }
+}
+
+/* Once loaded, restore full interactivity */
+.turnstile-wrap:not(.captcha-loading) {
+  pointer-events: auto;
+}
+
