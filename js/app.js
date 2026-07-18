@@ -380,12 +380,44 @@ function viewArtist(id) {
   showPage('artist-profile');
 }
 
-function toggleFollow(artistId, btn) {
+async function toggleFollow(artistId, btn) {
   const cu = DB.Users.current();
   if (!cu) { openAuthModal(); return; }
-  const isNow = DB.Follows.toggle(cu.id, artistId);
-  if (btn) { btn.className = isNow ? 'btn btn-outline' : 'btn btn-primary'; btn.textContent = isNow ? '✓ Following' : '+ Follow'; }
-  showToast(isNow ? 'Following! 🎤' : 'Unfollowed', isNow ? 'success' : 'info');
+
+  const wasFollowing = DB.Follows.isFollowing(cu.id, artistId);
+
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = wasFollowing ? '...' : '...';
+  }
+
+  try {
+    const res = await API.artists.follow(artistId);
+    const isNow = res.following;
+
+    if (isNow) {
+      if (!DB.get().follows[cu.id]) DB.get().follows[cu.id] = [];
+      if (!DB.get().follows[cu.id].includes(artistId)) DB.get().follows[cu.id].push(artistId);
+    } else {
+      const arr = DB.get().follows[cu.id] || [];
+      const idx = arr.indexOf(artistId);
+      if (idx >= 0) arr.splice(idx, 1);
+    }
+    DB.save();
+
+    if (btn) {
+      btn.disabled = false;
+      btn.className = isNow ? 'btn btn-outline' : 'btn btn-primary';
+      btn.textContent = isNow ? '✓ Following' : '+ Follow';
+    }
+    showToast(isNow ? 'Following!' : 'Unfollowed', isNow ? 'success' : 'info');
+  } catch (err) {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = wasFollowing ? '✓ Following' : '+ Follow';
+    }
+    showToast(err.message || 'Failed to update follow', 'error');
+  }
 }
 
 function shareArtist(id) {
@@ -396,13 +428,38 @@ function shareArtist(id) {
 }
 
 // ── Song actions ─────────────────────────────────────────────
-function toggleLikeSong(songId, btn) {
+async function toggleLikeSong(songId, btn) {
   const cu = DB.Users.current();
   if (!cu) { openAuthModal(); return; }
-  const isLiked = DB.Likes.toggle(cu.id, songId);
-  if (btn) btn.textContent = isLiked ? '❤️' : '🤍';
-  showToast(isLiked ? '❤️ Added to Liked Songs' : 'Removed from liked', isLiked ? 'success' : 'info');
-  updateLikeBtn(songId);
+
+  const wasLiked = DB.Likes.isLiked(cu.id, songId);
+
+  if (btn) btn.textContent = '...';
+
+  try {
+    const res = await API.songs.like(songId);
+    const isNow = res.liked;
+
+    if (isNow) {
+      if (!DB.get().likes[cu.id]) DB.get().likes[cu.id] = [];
+      if (!DB.get().likes[cu.id].includes(songId)) DB.get().likes[cu.id].push(songId);
+    } else {
+      const arr = DB.get().likes[cu.id] || [];
+      const idx = arr.indexOf(songId);
+      if (idx >= 0) arr.splice(idx, 1);
+    }
+
+    const song = DB.Songs.find(songId);
+    if (song) song.likes = res.likes;
+
+    DB.save();
+
+    updateLikeBtn(songId);
+    showToast(isNow ? 'Added to Liked Songs' : 'Removed from liked', isNow ? 'success' : 'info');
+  } catch (err) {
+    if (btn) btn.textContent = wasLiked ? '❤️' : '🤍';
+    showToast(err.message || 'Failed to update like', 'error');
+  }
 }
 
 function updateLikeBtn(songId) {
