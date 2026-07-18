@@ -143,8 +143,15 @@ router.post('/login', async (req, res) => {
 // GET /api/auth/me
 router.get('/me', requireAuth, async (req, res) => {
   try {
-    const profile = await dbGet(`users/${req.user.localId}`, req.idToken);
-    res.json({ user: profile });
+    const uid = req.user.localId;
+    const [profile, rawLikes, rawFollows] = await Promise.all([
+      dbGet(`users/${uid}`, req.idToken),
+      dbGet(`likes/${uid}`, req.idToken),
+      dbGet(`follows/${uid}`, req.idToken)
+    ]);
+    const likes = rawLikes ? Object.keys(rawLikes) : [];
+    const follows = rawFollows ? Object.keys(rawFollows) : [];
+    res.json({ user: profile, likes, follows });
   } catch (err) {
     res.status(500).json({ error: 'Failed to fetch profile' });
   }

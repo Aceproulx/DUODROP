@@ -20,18 +20,18 @@ function showPage(name) {
   closeSidebar();
 
   const refreshers = {
-    discover:        renderDiscover,
-    trending:        renderTrending,
-    charts:          renderCharts,
-    playlists:       renderPlaylists,
-    artists:         renderArtists,
-    library:         renderLibrary,
-    dashboard:       renderDashboard,
-    earnings:        renderEarnings,
-    settings:        renderSettings,
-    profile:         renderMyProfile,
-    admin:           renderAdminDashboard,
-    about:           renderAbout,
+    discover: renderDiscover,
+    trending: renderTrending,
+    charts: renderCharts,
+    playlists: renderPlaylists,
+    artists: renderArtists,
+    library: renderLibrary,
+    dashboard: renderDashboard,
+    earnings: renderEarnings,
+    settings: renderSettings,
+    profile: renderMyProfile,
+    admin: renderAdminDashboard,
+    about: renderAbout,
   };
   if (refreshers[name]) refreshers[name]();
 }
@@ -76,7 +76,7 @@ document.addEventListener('keydown', e => {
 
 // ── CAPTCHA (Cloudflare Turnstile) ─────────────────────────
 let _loginCaptchaToken = null;
-let _regCaptchaToken   = null;
+let _regCaptchaToken = null;
 
 // Called by Turnstile before the widget becomes interactive (still loading)
 function onLoginTurnstileBeforeInteractive() {
@@ -132,29 +132,29 @@ function openAuthModal(tab) {
 function switchAuthTab(tab) {
   // Normalize: anything that isn't explicitly 'register' defaults to 'login'
   const active = tab === 'register' ? 'register' : 'login';
-  document.getElementById('auth-login').style.display    = active === 'login'    ? '' : 'none';
+  document.getElementById('auth-login').style.display = active === 'login' ? '' : 'none';
   document.getElementById('auth-register').style.display = active === 'register' ? '' : 'none';
-  document.getElementById('tab-login').classList.toggle('active',    active === 'login');
+  document.getElementById('tab-login').classList.toggle('active', active === 'login');
   document.getElementById('tab-register').classList.toggle('active', active === 'register');
-  ['err-login','err-register','err-login-captcha','err-reg-captcha'].forEach(id => {
+  ['err-login', 'err-register', 'err-login-captcha', 'err-reg-captcha'].forEach(id => {
     const el = document.getElementById(id); if (el) el.textContent = '';
   });
   // Reset captchas
   if (window.turnstile) {
     _loginCaptchaToken = null;
-    _regCaptchaToken   = null;
-    try { turnstile.reset('#login-turnstile'); } catch (e) {}
-    try { turnstile.reset('#reg-turnstile'); } catch (e) {}
+    _regCaptchaToken = null;
+    try { turnstile.reset('#login-turnstile'); } catch (e) { }
+    try { turnstile.reset('#reg-turnstile'); } catch (e) { }
   }
 }
 
 async function doLogin() {
   if (!verifyLoginCaptcha()) return;
 
-  const email    = document.getElementById('l-email').value.trim();
+  const email = document.getElementById('l-email').value.trim();
   const password = document.getElementById('l-password').value;
 
-  if (!email)    { document.getElementById('err-l-email').textContent = '⚠ Email is required.'; return; }
+  if (!email) { document.getElementById('err-l-email').textContent = '⚠ Email is required.'; return; }
   if (!password) { document.getElementById('err-l-password').textContent = '⚠ Password is required.'; return; }
 
   const loginBtn = document.querySelector('#auth-login .btn-primary');
@@ -162,7 +162,7 @@ async function doLogin() {
 
   try {
     const result = await API.auth.login(email, password, _loginCaptchaToken);
-    const user   = result.user;
+    const user = result.user;
     // Sync into local DB cache
     DB.get().currentUser = user.id;
     if (!DB.Users.find(user.id)) DB.get().users.push(user);
@@ -177,7 +177,7 @@ async function doLogin() {
   } catch (err) {
     document.getElementById('err-login').textContent = '⚠ ' + err.message;
     // Reset Turnstile on failed login
-    if (window.turnstile) try { turnstile.reset('#login-turnstile'); } catch(e){}
+    if (window.turnstile) try { turnstile.reset('#login-turnstile'); } catch (e) { }
     _loginCaptchaToken = null;
   } finally {
     if (loginBtn) loginBtn.disabled = false;
@@ -188,16 +188,16 @@ async function doRegister() {
   if (!verifyRegCaptcha()) return;
 
   const username = document.getElementById('r-username').value.trim();
-  const name     = document.getElementById('r-name').value.trim();
-  const email    = document.getElementById('r-email').value.trim();
+  const name = document.getElementById('r-name').value.trim();
+  const email = document.getElementById('r-email').value.trim();
   const password = document.getElementById('r-password').value;
-  const role     = document.getElementById('r-role').value;
-  const phone    = document.getElementById('r-phone').value.trim();
+  const role = document.getElementById('r-role').value;
+  const phone = document.getElementById('r-phone').value.trim();
   const referral = document.getElementById('r-referral').value.trim();
 
   let valid = true;
   if (!username) { document.getElementById('err-r-username').textContent = '⚠ Username is required.'; valid = false; }
-  if (!name)     { document.getElementById('err-r-name').textContent = '⚠ Full name is required.'; valid = false; }
+  if (!name) { document.getElementById('err-r-name').textContent = '⚠ Full name is required.'; valid = false; }
   if (!email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { document.getElementById('err-r-email').textContent = '⚠ Valid email required.'; valid = false; }
   if (!password || password.length < 8) { document.getElementById('err-r-password').textContent = '⚠ Password must be at least 8 characters.'; valid = false; }
   if (!valid) return;
@@ -207,7 +207,7 @@ async function doRegister() {
 
   try {
     const result = await API.auth.register({ username, name, email, password, role, phone, referral, cfToken: _regCaptchaToken });
-    const user   = result.user;
+    const user = result.user;
     // Sync into local DB cache
     DB.get().currentUser = user.id;
     if (!DB.Users.find(user.id)) DB.get().users.push(user);
@@ -222,7 +222,7 @@ async function doRegister() {
   } catch (err) {
     document.getElementById('err-register').textContent = '⚠ ' + err.message;
     // Reset Turnstile on failed register
-    if (window.turnstile) try { turnstile.reset('#reg-turnstile'); } catch(e){}
+    if (window.turnstile) try { turnstile.reset('#reg-turnstile'); } catch (e) { }
     _regCaptchaToken = null;
   } finally {
     if (regBtn) regBtn.disabled = false;
@@ -237,7 +237,7 @@ function logout() {
   showPage('discover');
 }
 
-window.handleAvatarClick = function() {
+window.handleAvatarClick = function () {
   const user = DB.Users.current();
   if (user) {
     showPage('profile');
@@ -252,26 +252,26 @@ function updateUserUI() {
     const av = user.avatar
       ? `<img src="${user.avatar}" alt="">`
       : user.username.slice(0, 2).toUpperCase();
-    ['su-avatar','tb-avatar'].forEach(id => {
+    ['su-avatar', 'tb-avatar'].forEach(id => {
       const el = document.getElementById(id);
       if (el) el.innerHTML = av;
     });
     const nameEl = document.getElementById('su-name'); if (nameEl) nameEl.textContent = user.username;
     const roleEl = document.getElementById('su-role'); if (roleEl) roleEl.textContent = user.role === 'artist' ? 'Artist' : user.role === 'admin' ? 'Admin' : 'Fan';
-    const btnEl  = document.querySelector('.su-btn'); if (btnEl) { btnEl.textContent = 'Sign Out'; btnEl.onclick = logout; }
+    const btnEl = document.querySelector('.su-btn'); if (btnEl) { btnEl.textContent = 'Sign Out'; btnEl.onclick = logout; }
     const adminLink = document.getElementById('admin-nav-link');
     if (adminLink) adminLink.style.display = user.role === 'admin' ? '' : 'none';
-    
+
     const heroBtn = document.getElementById('hero-join-btn');
     if (heroBtn) {
       heroBtn.innerHTML = '👤 My Profile';
       heroBtn.onclick = () => showPage('profile');
     }
   } else {
-    ['su-avatar','tb-avatar'].forEach(id => { const el = document.getElementById(id); if (el) el.innerHTML = '?'; });
+    ['su-avatar', 'tb-avatar'].forEach(id => { const el = document.getElementById(id); if (el) el.innerHTML = '?'; });
     const nameEl = document.getElementById('su-name'); if (nameEl) nameEl.textContent = 'Guest';
     const roleEl = document.getElementById('su-role'); if (roleEl) roleEl.textContent = 'Fan';
-    const btnEl  = document.querySelector('.su-btn'); if (btnEl) { btnEl.textContent = 'Sign In'; btnEl.onclick = () => openAuthModal('login'); }
+    const btnEl = document.querySelector('.su-btn'); if (btnEl) { btnEl.textContent = 'Sign In'; btnEl.onclick = () => openAuthModal('login'); }
     const adminLink = document.getElementById('admin-nav-link');
     if (adminLink) adminLink.style.display = 'none';
 
@@ -291,7 +291,7 @@ function handleSearch(query) {
   if (!query.trim()) { dd.innerHTML = ''; dd.classList.remove('open'); return; }
 
   _searchTimer = setTimeout(() => {
-    const songs   = DB.Songs.search(query).slice(0, 5);
+    const songs = DB.Songs.search(query).slice(0, 5);
     const artists = DB.Artists.search(query).slice(0, 3);
 
     if (!songs.length && !artists.length) { dd.innerHTML = '<div class="sdd-empty">No results found</div>'; dd.classList.add('open'); return; }
@@ -332,18 +332,18 @@ document.addEventListener('click', e => {
 
 // ── Artist profile ─────────────────────────────────────────────
 function viewArtist(id) {
-  const artist  = DB.Users.find(id);
+  const artist = DB.Users.find(id);
   if (!artist) return;
 
-  const songs     = DB.Songs.byArtist(id).filter(s => s.status === 'approved').sort((a,b) => (b.plays||0)-(a.plays||0));
+  const songs = DB.Songs.byArtist(id).filter(s => s.status === 'approved').sort((a, b) => (b.plays || 0) - (a.plays || 0));
   const followers = DB.Artists.followerCount(id);
-  const cu        = DB.Users.current();
+  const cu = DB.Users.current();
   const isFollowing = cu ? DB.Follows.isFollowing(cu.id, id) : false;
-  const totalPlays  = songs.reduce((s, x) => s + (x.plays||0), 0);
+  const totalPlays = songs.reduce((s, x) => s + (x.plays || 0), 0);
 
   const avatarHtml = artist.avatar
     ? `<img src="${artist.avatar}" alt="${artist.username}">`
-    : artist.username.slice(0,2).toUpperCase();
+    : artist.username.slice(0, 2).toUpperCase();
 
   const html = `
     <div class="artist-hero">
@@ -361,8 +361,8 @@ function viewArtist(id) {
           </div>
           <div class="ah-actions">
             ${cu && cu.id !== id
-              ? `<button class="btn ${isFollowing ? 'btn-outline' : 'btn-primary'}" onclick="toggleFollow('${id}',this)">${isFollowing ? '✓ Following' : '+ Follow'}</button>`
-              : ''}
+      ? `<button class="btn ${isFollowing ? 'btn-outline' : 'btn-primary'}" onclick="toggleFollow('${id}',this)">${isFollowing ? '✓ Following' : '+ Follow'}</button>`
+      : ''}
             <button class="btn btn-outline" onclick="shareArtist('${id}')">🔗 Share</button>
           </div>
         </div>
@@ -371,8 +371,8 @@ function viewArtist(id) {
     <div class="page-content">
       <div class="section">
         <h2 class="section-title">🎵 Songs (${songs.length})</h2>
-        ${songs.length ? `<div class="song-list">${songs.map((s,i) => songRow(s, i+1)).join('')}</div>`
-          : '<p class="dim">No songs uploaded yet.</p>'}
+        ${songs.length ? `<div class="song-list">${songs.map((s, i) => songRow(s, i + 1)).join('')}</div>`
+      : '<p class="dim">No songs uploaded yet.</p>'}
       </div>
     </div>`;
 
@@ -390,10 +390,9 @@ function toggleFollow(artistId, btn) {
 
 function shareArtist(id) {
   const cu = DB.Users.current();
-  const link = `https://duodrop.mw/artist/${id}${cu ? `?ref=${DB.Users.find(cu.id)?.refCode||''}` : ''}`;
+  const link = `https://duodrop.mw/artist/${id}${cu ? `?ref=${DB.Users.find(cu.id)?.refCode || ''}` : ''}`;
   copyToClipboard(link);
-  if (cu) DB.FanEarnings.credit(cu.id, 2, 'Shared artist profile');
-  showToast('🔗 Artist link copied! You earned MK 2!', 'success');
+  showToast('🔗 Artist link copied!', 'success');
 }
 
 // ── Song actions ─────────────────────────────────────────────
@@ -419,7 +418,7 @@ function toggleLikeCurrent() {
 }
 
 function openComments(songId) {
-  const song     = DB.Songs.find(songId);
+  const song = DB.Songs.find(songId);
   const comments = DB.Comments.get(songId);
   window._commentSongId = songId;
   document.getElementById('comment-modal-title').textContent = `💬 ${song?.title || 'Comments'}`;
@@ -433,7 +432,7 @@ function renderComments(comments) {
   if (!comments.length) { el.innerHTML = '<p class="dim" style="padding:12px;">No comments yet. Be the first!</p>'; return; }
   el.innerHTML = comments.map(c => `
     <div class="comment-item">
-      <div class="ci-avatar">${c.username.slice(0,2).toUpperCase()}</div>
+      <div class="ci-avatar">${c.username.slice(0, 2).toUpperCase()}</div>
       <div class="ci-body">
         <div class="ci-meta"><strong>${c.username}</strong> <span>${timeAgo(c.ts)}</span></div>
         <div class="ci-text">${escHtml(c.text)}</div>
@@ -446,7 +445,7 @@ function postComment() {
   const cu = DB.Users.current();
   if (!cu) { openAuthModal(); return; }
   const input = document.getElementById('comment-input');
-  const text  = input.value.trim();
+  const text = input.value.trim();
   if (!text || text.length < 1) { showToast('Comment cannot be empty', 'error'); return; }
   if (text.length > 500) { showToast('Comment too long (max 500 chars)', 'error'); return; }
   DB.Comments.add(window._commentSongId, cu.id, text);
@@ -466,12 +465,11 @@ function shareCurrentSong() {
 }
 
 function shareSong(songId) {
-  const cu   = DB.Users.current();
+  const cu = DB.Users.current();
   const song = DB.Songs.find(songId);
-  const link = `https://duodrop.mw/song/${songId}${cu ? `?ref=${DB.Users.find(cu.id)?.refCode||''}` : ''}`;
+  const link = `https://duodrop.mw/song/${songId}${cu ? `?ref=${DB.Users.find(cu.id)?.refCode || ''}` : ''}`;
   copyToClipboard(link);
-  if (cu) DB.FanEarnings.credit(cu.id, 2, `Shared: ${song?.title || songId}`);
-  showToast(`🔗 Link copied! ${cu ? 'You earned MK 2!' : 'Sign in to earn when friends join.'}`, 'success');
+  showToast(`🔗 Link copied! ${cu ? 'Link copied successfully' : 'Sign in to earn when friends join.'}`, 'success');
 }
 
 function downloadCurrentSong() {
@@ -491,9 +489,9 @@ function downloadCurrentSong() {
 // ── Song card/row builders ────────────────────────────────────
 function songCard(song) {
   const artist = DB.Users.find(song.artistId);
-  const cu     = DB.Users.current();
-  const liked  = cu ? DB.Likes.isLiked(cu.id, song.id) : false;
-  const color  = genreColor(song.genre);
+  const cu = DB.Users.current();
+  const liked = cu ? DB.Likes.isLiked(cu.id, song.id) : false;
+  const color = genreColor(song.genre);
 
   return `<div class="song-card" onclick="playSong('${song.id}')">
     <div class="sc-art" style="background:${color};">
@@ -505,13 +503,13 @@ function songCard(song) {
       <div class="sc-title" title="${song.title}">${song.title}</div>
       <div class="sc-artist" onclick="event.stopPropagation();viewArtist('${song.artistId}')">${artist?.name || '?'}</div>
       <div class="sc-meta">
-        <span>▶ ${fmtNum(song.plays||0)}</span>
-        <span>❤ ${song.likes||0}</span>
+        <span>▶ ${fmtNum(song.plays || 0)}</span>
+        <span>❤ ${song.likes || 0}</span>
         <span class="sc-genre">${song.genre}</span>
       </div>
     </div>
     <div class="sc-actions">
-      <button class="icon-btn" data-like-id="${song.id}" onclick="event.stopPropagation();toggleLikeSong('${song.id}',this)">${liked?'❤️':'🤍'}</button>
+      <button class="icon-btn" data-like-id="${song.id}" onclick="event.stopPropagation();toggleLikeSong('${song.id}',this)">${liked ? '❤️' : '🤍'}</button>
       <button class="icon-btn" onclick="event.stopPropagation();openComments('${song.id}')">💬</button>
       <button class="icon-btn" onclick="event.stopPropagation();shareSong('${song.id}')">🔗</button>
     </div>
@@ -520,34 +518,34 @@ function songCard(song) {
 
 function songRow(song, rank) {
   const artist = DB.Users.find(song.artistId);
-  const cu     = DB.Users.current();
-  const liked  = cu ? DB.Likes.isLiked(cu.id, song.id) : false;
+  const cu = DB.Users.current();
+  const liked = cu ? DB.Likes.isLiked(cu.id, song.id) : false;
 
   return `<div class="song-row" onclick="playSong('${song.id}')">
     ${rank ? `<div class="sr-rank">${rank}</div>` : ''}
     <div class="sr-art" style="background:${genreColor(song.genre)};">${song.artwork ? `<img src="${song.artwork}">` : '🎵'}</div>
     <div class="sr-info">
-      <div class="sr-title">${song.title} ${song.type==='premium'?'<span class="badge-prem">⭐ Premium</span>':''}</div>
-      <div class="sr-artist" onclick="event.stopPropagation();viewArtist('${song.artistId}')">${artist?.name||'?'} · ${song.genre}</div>
+      <div class="sr-title">${song.title} ${song.type === 'premium' ? '<span class="badge-prem">⭐ Premium</span>' : ''}</div>
+      <div class="sr-artist" onclick="event.stopPropagation();viewArtist('${song.artistId}')">${artist?.name || '?'} · ${song.genre}</div>
     </div>
-    <div class="sr-plays">▶ ${fmtNum(song.plays||0)}</div>
-    <div class="sr-dur">${song.duration||'—'}</div>
+    <div class="sr-plays">▶ ${fmtNum(song.plays || 0)}</div>
+    <div class="sr-dur">${song.duration || '—'}</div>
     <div class="sr-acts">
-      <button class="icon-btn" data-like-id="${song.id}" onclick="event.stopPropagation();toggleLikeSong('${song.id}',this)">${liked?'❤️':'🤍'}</button>
+      <button class="icon-btn" data-like-id="${song.id}" onclick="event.stopPropagation();toggleLikeSong('${song.id}',this)">${liked ? '❤️' : '🤍'}</button>
       <button class="icon-btn" onclick="event.stopPropagation();openComments('${song.id}')">💬</button>
       <button class="icon-btn" onclick="event.stopPropagation();shareSong('${song.id}')">🔗</button>
-      ${song.type==='free' ? `<button class="icon-btn" onclick="event.stopPropagation();downloadCurrentSong()">⬇</button>` : ''}
+      ${song.type === 'free' ? `<button class="icon-btn" onclick="event.stopPropagation();downloadCurrentSong()">⬇</button>` : ''}
     </div>
   </div>`;
 }
 
 function artistCard(artist) {
-  const songs     = DB.Songs.byArtist(artist.id);
-  const plays     = songs.reduce((s, x) => s + (x.plays||0), 0);
+  const songs = DB.Songs.byArtist(artist.id);
+  const plays = songs.reduce((s, x) => s + (x.plays || 0), 0);
   const followers = DB.Artists.followerCount(artist.id);
   const avatarHtml = artist.avatar
     ? `<img src="${artist.avatar}" alt="${artist.username}">`
-    : artist.username.slice(0,2).toUpperCase();
+    : artist.username.slice(0, 2).toUpperCase();
   return `<div class="artist-card" onclick="viewArtist('${artist.id}')">
     <div class="ac-avatar">${avatarHtml}</div>
     <div class="ac-name">${artist.name}</div>
@@ -610,12 +608,12 @@ function renderMyProfile() {
     document.getElementById('my-profile-content').innerHTML = '<div class="empty-state"><div class="es-icon">👤</div><p>Sign in to view your profile</p><button class="btn btn-primary" onclick="openAuthModal()">Sign In</button></div>';
     return;
   }
-  const songs   = DB.Songs.byArtist(cu.id).filter(s => s.status === 'approved');
+  const songs = DB.Songs.byArtist(cu.id).filter(s => s.status === 'approved');
   const follows = DB.Follows.get(cu.id).length;
 
   const avatarHtml = cu.avatar
     ? `<img src="${cu.avatar}" alt="${cu.username}"><div class="ph-avatar-overlay">📷</div>`
-    : `<span>${cu.username.slice(0,2).toUpperCase()}</span><div class="ph-avatar-overlay">📷</div>`;
+    : `<span>${cu.username.slice(0, 2).toUpperCase()}</span><div class="ph-avatar-overlay">📷</div>`;
 
   const html = `
     <div class="profile-hero">
@@ -650,15 +648,15 @@ function openProfileEdit() {
   const cu = DB.Users.current();
   if (!cu) return;
   const preview = document.getElementById('pp-edit-preview');
-  const initEl  = document.getElementById('pp-edit-initials');
+  const initEl = document.getElementById('pp-edit-initials');
   if (cu.avatar) {
     preview.innerHTML = `<img src="${cu.avatar}" alt="">`;
   } else {
-    if (initEl) initEl.textContent = cu.username.slice(0,2).toUpperCase();
+    if (initEl) initEl.textContent = cu.username.slice(0, 2).toUpperCase();
   }
-  document.getElementById('pe-name').value  = cu.name || '';
-  document.getElementById('pe-bio').value   = cu.bio  || '';
-  document.getElementById('pe-phone').value = cu.phone|| '';
+  document.getElementById('pe-name').value = cu.name || '';
+  document.getElementById('pe-bio').value = cu.bio || '';
+  document.getElementById('pe-phone').value = cu.phone || '';
   openModal('modal-profile-edit');
 }
 
@@ -684,8 +682,8 @@ async function saveProfileModal() {
   if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = 'Saving…'; }
 
   try {
-    const name  = document.getElementById('pe-name').value.trim();
-    const bio   = document.getElementById('pe-bio').value.trim().slice(0, 300);
+    const name = document.getElementById('pe-name').value.trim();
+    const bio = document.getElementById('pe-bio').value.trim().slice(0, 300);
     const phone = document.getElementById('pe-phone').value.trim();
     const updates = { name: name || cu.name, bio, phone };
 
@@ -693,7 +691,7 @@ async function saveProfileModal() {
     if (_pendingAvatarFile && API.isLoggedIn?.() !== false) {
       try {
         const signData = await API.upload.signAvatar();
-        const cldRes   = await API.upload.toCloudinary(_pendingAvatarFile, signData);
+        const cldRes = await API.upload.toCloudinary(_pendingAvatarFile, signData);
         updates.avatar = cldRes.secure_url;
       } catch (_) { /* fall back to keeping old avatar */ }
     }
@@ -719,20 +717,20 @@ async function saveProfileModal() {
 }
 
 // ── Utilities ─────────────────────────────────────────────────
-function initials(name) { return (name||'?').split(' ').map(p=>p[0]).join('').toUpperCase().slice(0,2); }
+function initials(name) { return (name || '?').split(' ').map(p => p[0]).join('').toUpperCase().slice(0, 2); }
 
 function fmtNum(n) {
-  if (n >= 1000000) return (n/1000000).toFixed(1) + 'M';
-  if (n >= 1000)    return (n/1000).toFixed(1) + 'K';
+  if (n >= 1000000) return (n / 1000000).toFixed(1) + 'M';
+  if (n >= 1000) return (n / 1000).toFixed(1) + 'K';
   return String(n);
 }
 
 function timeAgo(ts) {
   const diff = Date.now() - new Date(ts).getTime();
-  if (diff < 60000)    return 'just now';
-  if (diff < 3600000)  return `${Math.floor(diff/60000)}m ago`;
-  if (diff < 86400000) return `${Math.floor(diff/3600000)}h ago`;
-  return `${Math.floor(diff/86400000)}d ago`;
+  if (diff < 60000) return 'just now';
+  if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
+  if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`;
+  return `${Math.floor(diff / 86400000)}d ago`;
 }
 
 function escHtml(str) { const d = document.createElement('div'); d.textContent = str; return d.innerHTML; }
@@ -746,10 +744,10 @@ function fallbackCopy(text) {
 }
 
 const GENRE_COLORS = {
-  'Afrobeats':'#f72585','Gospel':'#00522A','Hip-Hop':'#7209b7',
-  'R&B / Soul':'#3a0ca3','Reggae':'#2dc653','Malawi Pop':'#CE1126',
-  'Praise & Worship':'#FCC417','Traditional':'#7b2d8b','Dance / EDM':'#0077b6',
-  'Other':'#555',
+  'Afrobeats': '#f72585', 'Gospel': '#00522A', 'Hip-Hop': '#7209b7',
+  'R&B / Soul': '#3a0ca3', 'Reggae': '#2dc653', 'Malawi Pop': '#CE1126',
+  'Praise & Worship': '#FCC417', 'Traditional': '#7b2d8b', 'Dance / EDM': '#0077b6',
+  'Other': '#555',
 };
 function genreColor(genre) { return GENRE_COLORS[genre] || '#333'; }
 
@@ -764,7 +762,7 @@ async function loadServerData() {
     if (songsRes.status === 'fulfilled' && songsRes.value.songs) {
       // Merge server songs into local DB (server data wins)
       const serverSongs = songsRes.value.songs;
-      const localSongs  = DB.get().songs;
+      const localSongs = DB.get().songs;
       // Add new server songs not already cached
       serverSongs.forEach(ss => {
         const idx = localSongs.findIndex(ls => ls.id === ss.id);
@@ -775,7 +773,7 @@ async function loadServerData() {
 
     if (artistsRes.status === 'fulfilled' && artistsRes.value.artists) {
       const serverArtists = artistsRes.value.artists;
-      const localUsers    = DB.get().users;
+      const localUsers = DB.get().users;
       serverArtists.forEach(sa => {
         const idx = localUsers.findIndex(u => u.id === sa.id);
         if (idx >= 0) Object.assign(localUsers[idx], sa);
@@ -793,6 +791,10 @@ async function loadServerData() {
           const idx = DB.get().users.findIndex(x => x.id === u.id);
           if (idx >= 0) Object.assign(DB.get().users[idx], u);
           else DB.get().users.push(u);
+          
+          if (meRes.likes) DB.get().likes[u.id] = meRes.likes;
+          if (meRes.follows) DB.get().follows[u.id] = meRes.follows;
+          
           localStorage.setItem('dd_user', JSON.stringify(u));
         }
       } catch (_) {
