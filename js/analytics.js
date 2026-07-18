@@ -129,7 +129,8 @@ function renderEarnings() {
   const el = document.getElementById('earnings-content');
 
   if (!cu) {
-    el.innerHTML = `<div class="empty-state"><div class="es-icon">💰</div><p>Sign in to view earnings</p><button class="btn btn-primary" onclick="openAuthModal()">Sign In</button></div>`;
+    el.innerHTML = `<div class="empty-state"><div class="es-icon"><i data-lucide="wallet"></i></div><p>Sign in to view earnings</p><button class="btn btn-primary" onclick="openAuthModal('login')">Sign In</button></div>`;
+    if (window.lucide) lucide.createIcons();
     return;
   }
 
@@ -140,49 +141,82 @@ function renderEarnings() {
 
   el.innerHTML = `
     <div class="earnings-hero">
-      <div class="eh-bal">
-        <span>Total Available Balance</span>
-        <strong class="eh-amount">MK ${totalEarn.toLocaleString()}</strong>
+      <div class="eh-bal-wrap">
+        <div class="eh-bal-icon"><i data-lucide="wallet"></i></div>
+        <div class="eh-bal">
+          <span>Total Available Balance</span>
+          <strong class="eh-amount">MK ${totalEarn.toLocaleString()}</strong>
+        </div>
       </div>
       <div class="eh-btns">
         ${canWithdraw
-          ? `<button class="btn btn-primary btn-lg" onclick="openWithdrawModal(${artEarn.balance})">💸 Withdraw Artist Earnings</button>`
-          : `<div class="lock-msg">🔒 Artist earnings locked — need 100 followers &amp; 1,000 plays on one song</div>`}
+          ? `<button class="btn btn-primary btn-lg" onclick="openWithdrawModal(${artEarn.balance})"><i data-lucide="arrow-up-right"></i> Withdraw Artist Earnings</button>`
+          : `<div class="lock-msg"><i data-lucide="lock"></i> <span>Artist earnings locked — need 100 followers &amp; 1,000 plays on one song</span></div>`}
       </div>
     </div>
 
     <div class="earnings-grid">
       <div class="eg-card">
-        <h3>🎵 Artist Earnings (MK ${artEarn.balance.toLocaleString()})</h3>
-        <p class="dim">Earned MK 1 for each full song play when you have 100+ followers</p>
-        ${artEarn.history.length ? artEarn.history.slice(0, 15).map(h => `
-          <div class="earn-hist-row">
-            <span class="ehr-type">${h.type === 'play' ? '▶' : '💸'}</span>
-            <span>${h.songTitle || h.type}</span>
-            <span style="color:${h.amount<0?'var(--danger)':'var(--green)'};">${h.amount<0?'':'+'}MK ${Math.abs(h.amount)}</span>
-            <span class="dim">${timeAgo(h.ts)}</span>
-          </div>`).join('') : '<p class="dim">No earnings yet</p>'}
+        <div class="eg-card-hdr">
+          <div class="eg-icon-wrap" style="color:var(--accent); background:rgba(var(--accent-rgb, 255, 77, 79), 0.1);"><i data-lucide="music"></i></div>
+          <div>
+            <h3>Artist Earnings <span class="eg-bal">(MK ${artEarn.balance.toLocaleString()})</span></h3>
+            <p class="dim">Earn MK 1 per full stream (100+ followers)</p>
+          </div>
+        </div>
+        <div class="earn-hist-list">
+          ${artEarn.history.length ? artEarn.history.slice(0, 15).map(h => `
+            <div class="earn-hist-row">
+              <div class="ehr-icon ${h.amount < 0 ? 'withdraw' : 'play'}">
+                <i data-lucide="${h.type === 'play' ? 'play-circle' : 'arrow-up-right'}"></i>
+              </div>
+              <div class="ehr-details">
+                <span class="ehr-title">${h.songTitle || (h.type === 'withdraw' ? 'Withdrawal' : h.type)}</span>
+                <span class="ehr-time">${timeAgo(h.ts)}</span>
+              </div>
+              <div class="ehr-amount" style="color:${h.amount < 0 ? 'var(--text)' : 'var(--green)'};">
+                ${h.amount < 0 ? '' : '+'}MK ${Math.abs(h.amount)}
+              </div>
+            </div>`).join('') : '<div class="empty-hist"><i data-lucide="inbox"></i><p>No earnings yet</p></div>'}
+        </div>
       </div>
 
       <div class="eg-card">
-        <h3>🔗 Fan Referral Earnings (MK ${fanEarn.balance.toLocaleString()})</h3>
-        <p class="dim">Earn MK 2 every time someone joins DUODROP via your link</p>
+        <div class="eg-card-hdr">
+          <div class="eg-icon-wrap" style="color:#10b981; background:rgba(16,185,129,0.1);"><i data-lucide="users"></i></div>
+          <div>
+            <h3>Referral Earnings <span class="eg-bal">(MK ${fanEarn.balance.toLocaleString()})</span></h3>
+            <p class="dim">Earn MK 2 per successful referral join</p>
+          </div>
+        </div>
+        
         <div class="ref-link-box">
           <div class="ref-row">
             <input type="text" readonly value="${DB.FanEarnings.shareLink(cu.id)}" class="ref-input" id="earn-ref-link">
-            <button class="btn btn-accent btn-sm" onclick="copyEarnRef()">📋 Copy Link</button>
+            <button class="btn btn-accent btn-sm" onclick="copyEarnRef()"><i data-lucide="copy"></i> Copy</button>
           </div>
         </div>
-        ${fanEarn.shares.length ? fanEarn.shares.slice(0,15).map(s => `
-          <div class="earn-hist-row">
-            <span class="ehr-type">🔗</span>
-            <span>${s.note}</span>
-            <span style="color:var(--green);">+MK ${s.amount}</span>
-            <span class="dim">${timeAgo(s.ts)}</span>
-          </div>`).join('') : '<p class="dim">No referral earnings yet. Share your link!</p>'}
+        
+        <div class="earn-hist-list">
+          ${fanEarn.shares.length ? fanEarn.shares.slice(0,15).map(s => `
+            <div class="earn-hist-row">
+              <div class="ehr-icon ref">
+                <i data-lucide="user-plus"></i>
+              </div>
+              <div class="ehr-details">
+                <span class="ehr-title">${s.note}</span>
+                <span class="ehr-time">${timeAgo(s.ts)}</span>
+              </div>
+              <div class="ehr-amount" style="color:var(--green);">
+                +MK ${s.amount}
+              </div>
+            </div>`).join('') : '<div class="empty-hist"><i data-lucide="link"></i><p>Share your link to earn!</p></div>'}
+        </div>
       </div>
     </div>
   `;
+  
+  if (window.lucide) lucide.createIcons();
 }
 
 function copyEarnRef() {
