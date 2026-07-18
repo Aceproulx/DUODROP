@@ -1423,9 +1423,9 @@ a:hover {
 
 /* ── UPLOAD ───────────────────────────────────────────────── */
 .upload-layout {
-  display: grid;
-  grid-template-columns: 1fr 340px;
-  gap: 24px;
+  display: flex;
+  justify-content: center;
+  width: 100%;
 }
 
 .upload-form-box {
@@ -1433,12 +1433,70 @@ a:hover {
   border-radius: var(--radius);
   padding: 24px;
   border: 1px solid var(--border);
+  width: 100%;
+  max-width: 600px;
 }
 
-.upload-info-box { 
-  display: flex; 
-  flex-direction: column; 
-  gap: 16px; 
+.pay-method-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.pm-card {
+  cursor: pointer;
+  position: relative;
+}
+
+.pm-card input[type="radio"] {
+  position: absolute;
+  opacity: 0;
+}
+
+.pm-card-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  border: 2px solid var(--border);
+  border-radius: 8px;
+  background: var(--card2);
+  transition: all 0.2s;
+  text-align: center;
+}
+
+.pm-card-inner i {
+  margin-bottom: 8px;
+  color: var(--text-mid);
+  width: 24px;
+  height: 24px;
+}
+
+.pm-card-inner span {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+
+.pm-card-inner small {
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.pm-card input[type="radio"]:checked + .pm-card-inner {
+  border-color: var(--accent);
+  background: rgba(var(--accent-rgb, 255, 77, 79), 0.1);
+}
+
+.pm-card input[type="radio"]:checked + .pm-card-inner i {
+  color: var(--accent);
+}
+
+.pm-card:hover .pm-card-inner {
+  border-color: rgba(var(--accent-rgb, 255, 77, 79), 0.5);
 }
 
 .info-card {

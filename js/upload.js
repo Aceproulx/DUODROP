@@ -24,7 +24,8 @@ function handleAudioFile(input) {
   _audioFile = file;
 
   const label = document.getElementById('audio-fd-content');
-  label.innerHTML = `<div class="fd-icon"><i data-lucide="check-circle" style="color:#10b981;"></i></div><div class="fd-label">${escHtml(file.name)}</div><div class="fd-hint">${(file.size/1024/1024).toFixed(2)} MB</div>`;
+  label.innerHTML = `<div class="fd-icon"><i data-lucide="check-circle" style="color:#10b981;"></i></div><div class="fd-label">${escHtml(file.name)}</div><div class="fd-hint">${(file.size/1024/1024).toFixed(2)} MB</div>
+  <button class="btn btn-sm btn-danger" style="margin-top:10px; position:relative; z-index:10;" onclick="removeAudioFile(event)">Remove</button>`;
   if (window.lucide) lucide.createIcons();
   document.getElementById('audio-drop').classList.add('has-file');
 
@@ -93,7 +94,8 @@ function submitUpload(e) {
   if (!cu) { openAuthModal(); showToast('Sign in to upload music', 'error'); return; }
 
   if (cu.role !== 'artist') {
-    showToast('Only artist accounts can upload music. Change your role in Settings.', 'error'); return;
+    document.getElementById('modal-become-artist').style.display = 'flex';
+    return;
   }
 
   // Gather values
@@ -143,9 +145,56 @@ function submitUpload(e) {
   if (!_audioFile) { showFieldError('err-u-audio', 'Please upload your audio file'); return; }
   if (!_artworkFile && !_artworkUrl) { showFieldError('err-u-art', 'Please upload cover artwork'); return; }
 
-  // Simulate upload progress
-  doUpload({ title, genre, desc, tags, type, price, txref, amount, artistId: cu.id });
+  // Save data globally and show guidelines modal
+  window._pendingUploadData = { title, genre, desc, tags, type, price, txref, amount, artistId: cu.id };
+  document.getElementById('modal-upload-guidelines').style.display = 'flex';
 }
+
+window.agreeAndUpload = function() {
+  closeModal('modal-upload-guidelines');
+  if (window._pendingUploadData) {
+    doUpload(window._pendingUploadData);
+    window._pendingUploadData = null;
+  }
+};
+
+window.activateArtistFromModal = async function() {
+  const btn = document.querySelector('#modal-become-artist .btn-accent');
+  btn.disabled = true;
+  btn.innerHTML = '<i class="lucide-loader"></i> Activating...';
+  
+  try {
+    const cu = DB.Users.current();
+    if (cu) {
+      // Ensure we have _fetch exposed
+      await _fetch('/api/artists/register', 'POST', { name: cu.name, bio: 'New artist on DUODROP' });
+      // Also update Firebase profile via the existing endpoint just to be thorough
+      await _fetch('/api/auth/profile', 'PATCH', { role: 'artist' });
+      
+      cu.role = 'artist';
+      DB.Users.update(cu);
+      showToast('Artist account activated!', 'success');
+      closeModal('modal-become-artist');
+    }
+  } catch(e) {
+    showToast('Failed to activate artist account: ' + e.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<i data-lucide="zap"></i> Activate Artist Account';
+    if (window.lucide) lucide.createIcons();
+  }
+};
+
+window.removeAudioFile = function(e) {
+  e.stopPropagation();
+  _audioFile = null;
+  document.getElementById('u-audio').value = '';
+  document.getElementById('audio-fd-content').innerHTML = '<div class="fd-icon"><i data-lucide="music"></i></div><div class="fd-label">Drop audio here or <span>click to browse</span></div><div class="fd-hint">MP3, WAV, FLAC, AAC — max 50 MB</div>';
+  const preview = document.getElementById('audio-preview');
+  if (preview) { preview.style.display = 'none'; preview.src = ''; }
+  document.getElementById('audio-drop').classList.remove('has-file');
+  if (window.lucide) lucide.createIcons();
+};
 
 async function doUpload(data) {
   const progressEl = document.getElementById('upload-progress');

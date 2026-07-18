@@ -46,6 +46,7 @@
     <div class="nav-group-label">ACCOUNT</div>
     <a class="nav-link" data-page="profile"  href="#"><span><i data-lucide="user-circle"></i></span> My Profile</a>
     <a class="nav-link" data-page="settings" href="#"><span><i data-lucide="settings"></i></span> Settings</a>
+    <a class="nav-link" data-page="about"    href="#"><span><i data-lucide="info"></i></span> About</a>
     <a class="nav-link" id="admin-nav-link" data-page="admin" href="#" style="display:none;"><span><i data-lucide="shield"></i></span> Admin Panel</a>
   </nav>
 
@@ -280,11 +281,32 @@
             <div class="form-row">
               <div class="fg">
                 <label>Payment Method</label>
-                <select id="u-paymethod">
-                  <option value="national-bank">National Bank (1014013314)</option>
-                  <option value="airtel">Airtel Money(0984 076 531)</option>
-                  <option value="mpamba">TNM Mpamba (0888 240 630)</option>
-                </select>
+                <div class="pay-method-cards">
+                  <label class="pm-card">
+                    <input type="radio" name="u-paymethod" value="national-bank" checked>
+                    <div class="pm-card-inner">
+                      <i data-lucide="landmark"></i>
+                      <span>National Bank</span>
+                      <small>1014013314</small>
+                    </div>
+                  </label>
+                  <label class="pm-card">
+                    <input type="radio" name="u-paymethod" value="airtel">
+                    <div class="pm-card-inner">
+                      <i data-lucide="smartphone"></i>
+                      <span>Airtel Money</span>
+                      <small>0984 076 531</small>
+                    </div>
+                  </label>
+                  <label class="pm-card">
+                    <input type="radio" name="u-paymethod" value="mpamba">
+                    <div class="pm-card-inner">
+                      <i data-lucide="smartphone"></i>
+                      <span>Mpamba/TNM</span>
+                      <small>0888 240 630</small>
+                    </div>
+                  </label>
+                </div>
               </div>
 
 
@@ -327,64 +349,7 @@
         </div>
 
 
-        <div class="upload-info-box">
-          <div class="info-card">
-            <div class="section-hdr"><h2 class="section-title"><i data-lucide="clipboard-list"></i> Upload Guidelines</h2></div>
-            <ul class="check-list">
-              <li><i data-lucide="check-circle" style="color:#10b981; width:14px;"></i> Audio must be your original work</li>
-              <li><i data-lucide="check-circle" style="color:#10b981; width:14px;"></i> File size: max 50 MB per song</li>
-              <li><i data-lucide="check-circle" style="color:#10b981; width:14px;"></i> Formats: MP3, WAV, FLAC, AAC</li>
-              <li><i data-lucide="check-circle" style="color:#10b981; width:14px;"></i> Artwork: min 500×500 pixels</li>
-              <li><i data-lucide="check-circle" style="color:#10b981; width:14px;"></i> Clear, professional audio quality</li>
-              <li><i data-lucide="x-circle" style="color:var(--danger, #ff4d4f); width:14px;"></i> No copyrighted material</li>
-              <li><i data-lucide="x-circle" style="color:var(--danger, #ff4d4f); width:14px;"></i> No plagiarism or covers without licence</li>
-            </ul>
-          </div>
-
-          <div class="info-card">
-            <h3><i data-lucide="coins" style="vertical-align: middle; margin-right: 6px;"></i> How You Earn</h3>
-
-            <div class="earn-list">
-              <div class="earn-item"><span class="earn-ic"><i data-lucide="music"></i></span>
-                <div><strong>MK 1 per full play</strong>
-                  <p>Every completed stream of your song</p>
-                </div>
-              </div>
-
-              <div class="earn-item"><span class="earn-ic"><i data-lucide="users"></i></span>
-                <div><strong>100 followers required</strong>
-                  <p>Reach 100 followers to enable earnings</p>
-                </div>
-              </div>
-
-              <div class="earn-item"><span class="earn-ic"><i data-lucide="bar-chart-2"></i></span>
-                <div><strong>1,000 plays to withdraw</strong>
-                  <p>Minimum per song before cash-out</p>
-                </div>
-              </div>
-
-              <div class="earn-item"><span class="earn-ic"><i data-lucide="link"></i></span>
-                <div><strong>Fans earn MK 2/share</strong>
-                  <p>Fans get MK 2 when new users register via their referral link</p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div class="info-card">
-            <h3><i data-lucide="smartphone" style="vertical-align: middle; margin-right: 6px;"></i> Payment Partners</h3>
-
-            <div class="pay-logos">
-              <div class="pay-logo"><i data-lucide="landmark" style="width:14px; margin-right:4px;"></i> National Bank</div>
-              <div class="pay-logo"><i data-lucide="smartphone" style="width:14px; margin-right:4px;"></i> Airtel Money</div>
-              <div class="pay-logo"><i data-lucide="smartphone" style="width:14px; margin-right:4px;"></i> Mpamba/TNM</div>
-            </div>
-          </div>
-
-          </div>
-
-        </div>
-
+        <!-- Guidelines moved to modal popup -->
       </div>
 
     </div>
@@ -430,6 +395,59 @@
         <p>Customize your DUODROP experience</p>
       </div>
       <div id="settings-content"></div>
+    </div>
+  </section>
+
+  <!-- ════ PAGE: ABOUT ════ -->
+  <section class="page" id="page-about">
+    <div class="page-content">
+      <div class="page-hdr">
+        <h1><i data-lucide="info"></i> About DUODROP</h1>
+        <p>Malawi's Number One Music Streaming Platform</p>
+      </div>
+      <div class="about-page">
+        <div class="about-page-card">
+          <div class="about-page-logo">
+            <i data-lucide="disc-3"></i>
+            <span>DUODROP</span>
+          </div>
+          <div class="about-page-version">Version 1.0.0</div>
+          <p class="about-page-desc">Malawi's Number One music streaming platform created by Richard Cameron and Sean Mkomera, built for artists and fans. Stream, share, and support local artists. Upload your music and earn real kwacha.</p>
+
+          <div class="about-page-links">
+            <a href="#" onclick="event.preventDefault();openPolicyModal('terms')">
+              <i data-lucide="file-text"></i>
+              <span>Terms of Service</span>
+            </a>
+            <a href="#" onclick="event.preventDefault();openPolicyModal('privacy')">
+              <i data-lucide="shield"></i>
+              <span>Privacy Policy</span>
+            </a>
+            <a href="#" onclick="event.preventDefault();openPolicyModal('help')">
+              <i data-lucide="help-circle"></i>
+              <span>Help Centre</span>
+            </a>
+            <a href="#" onclick="event.preventDefault();openPolicyModal('contact')">
+              <i data-lucide="mail"></i>
+              <span>Contact Us</span>
+            </a>
+          </div>
+
+          <div class="about-page-team">
+            <div class="about-page-team-title">Built with love in Malawi</div>
+            <div class="about-page-team-names">
+              <div class="about-page-person">
+                <div class="about-page-person-avatar">RC</div>
+                <div class="about-page-person-name">Richard Cameron</div>
+              </div>
+              <div class="about-page-person">
+                <div class="about-page-person-avatar">SM</div>
+                <div class="about-page-person-name">Sean Mkomera</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   </section>
 
@@ -734,6 +752,57 @@
 
   </div>
 
+</div>
+
+<!-- Upload Guidelines Modal -->
+<div class="modal-overlay" id="modal-upload-guidelines">
+  <div class="modal modal-md">
+    <div class="modal-hdr">
+      <h3><i data-lucide="clipboard-list"></i> Upload Guidelines & Terms</h3>
+      <button class="modal-close" onclick="closeModal('modal-upload-guidelines')"><i data-lucide="x"></i></button>
+    </div>
+    <div class="modal-body">
+      <ul class="check-list" style="margin-bottom: 24px;">
+        <li><i data-lucide="check-circle" style="color:#10b981; width:16px;"></i> Audio must be your original work</li>
+        <li><i data-lucide="check-circle" style="color:#10b981; width:16px;"></i> File size: max 50 MB per song</li>
+        <li><i data-lucide="check-circle" style="color:#10b981; width:16px;"></i> Formats: MP3, WAV, FLAC, AAC</li>
+        <li><i data-lucide="check-circle" style="color:#10b981; width:16px;"></i> Artwork: min 500×500 pixels</li>
+        <li><i data-lucide="check-circle" style="color:#10b981; width:16px;"></i> Clear, professional audio quality</li>
+        <li><i data-lucide="x-circle" style="color:var(--danger, #ff4d4f); width:16px;"></i> No copyrighted material</li>
+        <li><i data-lucide="x-circle" style="color:var(--danger, #ff4d4f); width:16px;"></i> No plagiarism or covers without licence</li>
+      </ul>
+      <p class="dim" style="font-size:13px; margin-bottom:16px;">By clicking Agree & Upload, you agree to our Terms of Service and confirm you hold all rights to this content.</p>
+      <button class="btn btn-primary btn-block" onclick="agreeAndUpload()"><i data-lucide="upload"></i> Agree & Upload</button>
+    </div>
+  </div>
+</div>
+
+<!-- Become Artist Modal -->
+<div class="modal-overlay" id="modal-become-artist">
+  <div class="modal modal-md">
+    <div class="modal-hdr">
+      <h3><i data-lucide="mic"></i> Become an Artist</h3>
+      <button class="modal-close" onclick="closeModal('modal-become-artist')"><i data-lucide="x"></i></button>
+    </div>
+    <div class="modal-body">
+      <p style="margin-bottom:16px;">You need an Artist account to upload music and earn kwacha from streams.</p>
+      
+      <div class="earn-list" style="margin-bottom: 24px;">
+        <div class="earn-item"><span class="earn-ic"><i data-lucide="music"></i></span>
+          <div><strong>MK 1 per full play</strong>
+            <p>Every completed stream of your song</p>
+          </div>
+        </div>
+        <div class="earn-item"><span class="earn-ic"><i data-lucide="users"></i></span>
+          <div><strong>100 followers required</strong>
+            <p>Reach 100 followers to enable earnings</p>
+          </div>
+        </div>
+      </div>
+
+      <button class="btn btn-accent btn-block" onclick="activateArtistFromModal()"><i data-lucide="zap"></i> Activate Artist Account</button>
+    </div>
+  </div>
 </div>
 
 <!-- Policy / Legal Modal -->
