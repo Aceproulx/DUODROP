@@ -796,9 +796,9 @@ async function loadServerData() {
           localStorage.setItem('dd_user', JSON.stringify(u));
         }
       } catch (_) {
-        // Token expired — clear it
-        API.auth.logout();
-        DB.Users.logout();
+        // Token expired - keeping local session alive as requested
+        // API.auth.logout();
+        // DB.Users.logout();
       }
     }
 
