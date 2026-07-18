@@ -90,7 +90,7 @@ function renderCharts() {
                   <div class="sr-artist" onclick="event.stopPropagation();viewArtist('${s.artistId}')">${artist?.name||'?'} · ${s.genre}</div>
                   ${isTop3 ? `
                   <div style="margin-top:6px;">
-                    <div style="height:3px;background:var(--border);border-radius:2px;overflow:hidden;width:200px;">
+                    <div style="height:3px;background:var(--border);border-radius:2px;overflow:hidden;width:100%;max-width:200px;">
                       <div style="height:100%;width:${pct}%;background:var(--accent);border-radius:2px;"></div>
                     </div>
                   </div>` : ''}
