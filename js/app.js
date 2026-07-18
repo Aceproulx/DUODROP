@@ -102,17 +102,21 @@ function onTurnstileError() {
 }
 
 function verifyLoginCaptcha() {
-  const errEl = document.getElementById('err-login-captcha');
-  if (!_loginCaptchaToken) { errEl.textContent = '⚠ Please complete the captcha.'; return false; }
-  errEl.textContent = '';
+  // ⚠ CAPTCHA DISABLED FOR TESTING — re-enable before going live
   return true;
+  // const errEl = document.getElementById('err-login-captcha');
+  // if (!_loginCaptchaToken) { errEl.textContent = '⚠ Please complete the captcha.'; return false; }
+  // errEl.textContent = '';
+  // return true;
 }
 
 function verifyRegCaptcha() {
-  const errEl = document.getElementById('err-reg-captcha');
-  if (!_regCaptchaToken) { errEl.textContent = '⚠ Please complete the captcha.'; return false; }
-  errEl.textContent = '';
+  // ⚠ CAPTCHA DISABLED FOR TESTING — re-enable before going live
   return true;
+  // const errEl = document.getElementById('err-reg-captcha');
+  // if (!_regCaptchaToken) { errEl.textContent = '⚠ Please complete the captcha.'; return false; }
+  // errEl.textContent = '';
+  // return true;
 }
 
 // ── Auth ─────────────────────────────────────────────────────
