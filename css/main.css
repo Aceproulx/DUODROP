@@ -3575,10 +3575,27 @@ a:hover {
     opacity: 1; } 
 }
 
-.modal-md
- { max-width: 460px; }
 .modal-sm { max-width: 380px; }
 .modal-lg { max-width: 700px; }
+.modal-drawer-right {
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  height: 100vh;
+  max-height: 100vh;
+  width: 340px;
+  max-width: 90vw;
+  border-radius: 0;
+  border: none;
+  border-left: 1px solid var(--border);
+  animation: slideLeft .25s ease;
+  margin: 0;
+}
+@keyframes slideLeft {
+  from { transform: translateX(100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
 
 .modal-hdr {
   display: flex;

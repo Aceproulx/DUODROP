@@ -76,27 +76,6 @@ async function renderSettings() {
               </div>
             </div>
 
-            <div class="sph-right settings-inline-notifs" style="background: var(--card2); padding: 16px; border-radius: 12px; border: 1px solid var(--border); min-width: 260px;">
-              <div style="font-size:12px; font-weight:700; color:var(--text-mid); margin-bottom:12px; text-transform:uppercase; letter-spacing:1px; display:flex; align-items:center; gap:6px;">
-                <i data-lucide="bell" style="width:14px; height:14px;"></i> Notifications
-              </div>
-              <label class="cb-label" style="display:flex; align-items:center; gap:8px; margin-bottom:8px; cursor:pointer;">
-                <input type="checkbox" id="notif-follow" ${nf ? 'checked' : ''} onchange="saveSettingsFromUI()">
-                <span style="font-size:13px;">New followers</span>
-              </label>
-              <label class="cb-label" style="display:flex; align-items:center; gap:8px; margin-bottom:8px; cursor:pointer;">
-                <input type="checkbox" id="notif-comment" ${nc ? 'checked' : ''} onchange="saveSettingsFromUI()">
-                <span style="font-size:13px;">New comments</span>
-              </label>
-              <label class="cb-label" style="display:flex; align-items:center; gap:8px; margin-bottom:8px; cursor:pointer;">
-                <input type="checkbox" id="notif-earn" ${ne ? 'checked' : ''} onchange="saveSettingsFromUI()">
-                <span style="font-size:13px;">Earnings milestones</span>
-              </label>
-              <label class="cb-label" style="display:flex; align-items:center; gap:8px; cursor:pointer;">
-                <input type="checkbox" id="notif-release" ${nr ? 'checked' : ''} onchange="saveSettingsFromUI()">
-                <span style="font-size:13px;">New releases</span>
-              </label>
-            </div>
           </div>
 
           <div class="settings-form">
@@ -966,3 +945,30 @@ function renderAbout() {
     DB.Settings.set('accentColor', _userSettings.accentColor);
   }
 })();
+
+window.openNotificationsModal = async function() {
+  const cu = DB.Users.current();
+  if (!cu) {
+    if (typeof openAuthModal === 'function') openAuthModal();
+    return;
+  }
+  
+  if (!_settingsLoaded) await _loadUserSettings();
+
+  const nf = _userSettings.notifications?.followers !== false;
+  const nc = _userSettings.notifications?.comments !== false;
+  const ne = _userSettings.notifications?.earnings !== false;
+  const nr = _userSettings.notifications?.releases !== false;
+
+  const fEl = document.getElementById('notif-follow');
+  const cEl = document.getElementById('notif-comment');
+  const eEl = document.getElementById('notif-earn');
+  const rEl = document.getElementById('notif-release');
+  
+  if (fEl) fEl.checked = nf;
+  if (cEl) cEl.checked = nc;
+  if (eEl) eEl.checked = ne;
+  if (rEl) rEl.checked = nr;
+
+  if (typeof openModal === 'function') openModal('modal-notifications');
+};

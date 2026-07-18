@@ -72,6 +72,7 @@
     </div>
     <div class="topbar-right">
       <button class="btn btn-accent btn-sm" onclick="showPage('upload')">+ Upload</button>
+      <button class="theme-btn" onclick="openNotificationsModal()" title="Notifications"><i data-lucide="bell"></i></button>
       <button class="theme-btn" onclick="toggleTheme()" id="theme-btn" title="Toggle theme"><i data-lucide="moon"></i></button>
       <div class="tb-avatar" id="tb-avatar" onclick="handleAvatarClick()">?</div>
     </div>
@@ -548,12 +549,6 @@
           <!-- Waveform visualization -->
           <canvas class="np-wave" id="np-wave"></canvas>
         </div>
-
-        <!-- Queue / Up Next -->
-        <div class="np-queue" id="np-queue">
-          <div class="np-queue-title"><i data-lucide="list-music"></i> Up Next</div>
-          <div class="np-queue-list" id="np-queue-list"></div>
-        </div>
       </div>
 
       <!-- Right: Info + controls + extras -->
@@ -598,6 +593,13 @@
           <button class="np-ctrl" onclick="toggleMute()" id="np-mute"><i data-lucide="volume-2"></i></button>
           <input type="range" class="np-vol-slider" id="np-vol-slider" min="0" max="100" value="80" oninput="setVolume(this.value)">
         </div>
+
+        <!-- Queue / Up Next -->
+        <div class="np-queue" id="np-queue">
+          <div class="np-queue-title"><i data-lucide="list-music"></i> Up Next</div>
+          <div class="np-queue-list" id="np-queue-list"></div>
+        </div>
+
       </div>
     </div>
   </div>
@@ -902,6 +904,41 @@
     <div class="modal-body" id="policy-modal-body"></div>
   </div>
 
+</div>
+
+<!-- Notifications Drawer Modal -->
+<div class="modal-overlay" id="modal-notifications">
+  <div class="modal modal-drawer-right">
+    <div class="modal-hdr">
+      <h3><i data-lucide="bell"></i> Notifications</h3>
+      <button class="modal-close" onclick="closeModal('modal-notifications')"><i data-lucide="x"></i></button>
+    </div>
+    <div class="modal-body" style="padding: 20px;">
+      <div style="font-size:14px; font-weight:600; color:var(--text-mid); margin-bottom:16px;">What notifications do you want to receive?</div>
+      
+      <div style="display:flex; flex-direction:column; gap:16px;">
+        <label class="cb-label" style="display:flex; align-items:center; justify-content:space-between; cursor:pointer; font-size: 15px; font-weight: 500;">
+          <span>New followers</span>
+          <input type="checkbox" id="notif-follow" onchange="saveSettingsFromUI()">
+        </label>
+        
+        <label class="cb-label" style="display:flex; align-items:center; justify-content:space-between; cursor:pointer; font-size: 15px; font-weight: 500;">
+          <span>New comments</span>
+          <input type="checkbox" id="notif-comment" onchange="saveSettingsFromUI()">
+        </label>
+        
+        <label class="cb-label" style="display:flex; align-items:center; justify-content:space-between; cursor:pointer; font-size: 15px; font-weight: 500;">
+          <span>Earnings milestones</span>
+          <input type="checkbox" id="notif-earn" onchange="saveSettingsFromUI()">
+        </label>
+        
+        <label class="cb-label" style="display:flex; align-items:center; justify-content:space-between; cursor:pointer; font-size: 15px; font-weight: 500;">
+          <span>New releases</span>
+          <input type="checkbox" id="notif-release" onchange="saveSettingsFromUI()">
+        </label>
+      </div>
+    </div>
+  </div>
 </div>
 
 <!-- Toast notification -->
