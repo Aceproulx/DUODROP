@@ -938,7 +938,7 @@ async function deleteAccount() {
     localStorage.removeItem('dd_token');
     localStorage.removeItem('dd_refresh');
     localStorage.removeItem('dd_user');
-    localStorage.removeItem('duodrop_v2');
+    localStorage.removeItem('duodrop_v3');
     localStorage.clear();
 
     showToast('Account deleted. You will be signed out.', 'success');

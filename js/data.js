@@ -3,7 +3,7 @@
    ================================================================ */
 
 const DB = (() => {
-  const KEY = 'duodrop_v2';
+  const KEY = 'duodrop_v3';
 
   const defaults = () => ({
     users:      [],
