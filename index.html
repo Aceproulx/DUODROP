@@ -484,7 +484,7 @@
 <div class="player-bar" id="player-bar">
 
 
-  <div class="pb-track">
+  <div class="pb-track" onclick="openNowPlaying()" style="cursor:pointer;">
     <div class="pb-art" id="pb-art"><i data-lucide="disc-3"></i></div>
     <div class="pb-info">
       <div class="pb-title"  id="pb-title">No track selected</div>
@@ -522,6 +522,84 @@
     <input type="range" class="vol-slider" id="vol-slider" min="0" max="100" value="80" oninput="setVolume(this.value)">
     <button class="pbc" onclick="shareCurrentSong()" title="Share"><i data-lucide="share-2"></i></button>
     <button class="pbc" onclick="downloadCurrentSong()" title="Download"><i data-lucide="download"></i></button>
+  </div>
+</div>
+
+<!-- ══ NOW PLAYING FULL-SCREEN ════════════════════════════════ -->
+<div class="np-overlay" id="np-overlay" onclick="if(event.target===this)closeNowPlaying()">
+  <div class="np-container">
+
+    <!-- Close btn -->
+    <button class="np-close" onclick="closeNowPlaying()" title="Close"><i data-lucide="chevron-down"></i></button>
+
+    <!-- Top bar -->
+    <div class="np-topbar">
+      <span class="np-from">Playing from <strong id="np-from-label">Charts</strong></span>
+      <button class="np-menu-btn" onclick="event.stopPropagation()"><i data-lucide="ellipsis-vertical"></i></button>
+    </div>
+
+    <!-- Main content -->
+    <div class="np-main">
+
+      <!-- Left: Artwork + equalizer -->
+      <div class="np-left">
+        <div class="np-art-wrap">
+          <div class="np-art" id="np-art"><i data-lucide="disc-3"></i></div>
+          <!-- Waveform visualization -->
+          <canvas class="np-wave" id="np-wave"></canvas>
+        </div>
+
+        <!-- Queue / Up Next -->
+        <div class="np-queue" id="np-queue">
+          <div class="np-queue-title"><i data-lucide="list-music"></i> Up Next</div>
+          <div class="np-queue-list" id="np-queue-list"></div>
+        </div>
+      </div>
+
+      <!-- Right: Info + controls + extras -->
+      <div class="np-right">
+
+        <!-- Track info -->
+        <div class="np-track-info">
+          <div class="np-title" id="np-title">No track selected</div>
+          <div class="np-artist" id="np-artist">—</div>
+        </div>
+
+        <!-- Like + Add to playlist -->
+        <div class="np-actions">
+          <button class="np-action-btn" id="np-like-btn" onclick="toggleLikeCurrent()"><i data-lucide="heart"></i></button>
+          <button class="np-action-btn" onclick="event.stopPropagation()"><i data-lucide="list-plus"></i></button>
+          <button class="np-action-btn" onclick="shareCurrentSong()"><i data-lucide="share-2"></i></button>
+        </div>
+
+        <!-- Progress -->
+        <div class="np-progress-wrap">
+          <span class="np-time" id="np-current">0:00</span>
+          <div class="np-progress" onclick="seekTo(event)">
+            <div class="np-prog-track">
+              <div class="np-prog-fill" id="np-prog-fill"></div>
+              <div class="np-prog-thumb" id="np-prog-thumb"></div>
+            </div>
+          </div>
+          <span class="np-time" id="np-duration">0:00</span>
+        </div>
+
+        <!-- Main controls -->
+        <div class="np-controls">
+          <button class="np-ctrl" id="np-shuffle" onclick="shuffleToggle()" title="Shuffle"><i data-lucide="shuffle"></i></button>
+          <button class="np-ctrl" onclick="prevTrack()" title="Previous"><i data-lucide="skip-back"></i></button>
+          <button class="np-ctrl np-play" id="np-play" onclick="togglePlay()"><i data-lucide="play"></i></button>
+          <button class="np-ctrl" onclick="nextTrack()" title="Next"><i data-lucide="skip-forward"></i></button>
+          <button class="np-ctrl" id="np-repeat" onclick="repeatToggle()" title="Repeat"><i data-lucide="repeat"></i></button>
+        </div>
+
+        <!-- Volume -->
+        <div class="np-volume">
+          <button class="np-ctrl" onclick="toggleMute()" id="np-mute"><i data-lucide="volume-2"></i></button>
+          <input type="range" class="np-vol-slider" id="np-vol-slider" min="0" max="100" value="80" oninput="setVolume(this.value)">
+        </div>
+      </div>
+    </div>
   </div>
 </div>
 
