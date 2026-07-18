@@ -16,6 +16,7 @@ function showPage(name) {
   if (nav) nav.classList.add('active');
 
   _currentPage = name;
+  localStorage.setItem('duodrop_current_page', name);
   closeSidebar();
 
   const refreshers = {
@@ -260,6 +261,12 @@ function updateUserUI() {
     const btnEl  = document.querySelector('.su-btn'); if (btnEl) { btnEl.textContent = 'Sign Out'; btnEl.onclick = logout; }
     const adminLink = document.getElementById('admin-nav-link');
     if (adminLink) adminLink.style.display = user.role === 'admin' ? '' : 'none';
+    
+    const heroBtn = document.getElementById('hero-join-btn');
+    if (heroBtn) {
+      heroBtn.innerHTML = '👤 My Profile';
+      heroBtn.onclick = () => showPage('profile');
+    }
   } else {
     ['su-avatar','tb-avatar'].forEach(id => { const el = document.getElementById(id); if (el) el.innerHTML = '?'; });
     const nameEl = document.getElementById('su-name'); if (nameEl) nameEl.textContent = 'Guest';
@@ -267,6 +274,12 @@ function updateUserUI() {
     const btnEl  = document.querySelector('.su-btn'); if (btnEl) { btnEl.textContent = 'Sign In'; btnEl.onclick = () => openAuthModal('login'); }
     const adminLink = document.getElementById('admin-nav-link');
     if (adminLink) adminLink.style.display = 'none';
+
+    const heroBtn = document.getElementById('hero-join-btn');
+    if (heroBtn) {
+      heroBtn.innerHTML = '🎤 Join Free';
+      heroBtn.onclick = () => openAuthModal('register');
+    }
   }
 }
 
@@ -792,7 +805,12 @@ async function loadServerData() {
     DB.save();
     updateUserUI();
     // Re-render current page with fresh data
-    if (typeof renderDiscover === 'function') renderDiscover();
+    const savedPage = localStorage.getItem('duodrop_current_page') || 'discover';
+    if (savedPage === 'discover' && typeof renderDiscover === 'function') {
+      renderDiscover();
+    } else {
+      showPage(savedPage);
+    }
   } catch (err) {
     console.warn('Server data load failed — using local data:', err.message);
   }
@@ -805,7 +823,8 @@ window.addEventListener('DOMContentLoaded', async () => {
   // Initialize Lucide icons
   if (window.lucide) lucide.createIcons();
   updateUserUI();
-  showPage('discover');
+  const savedPage = localStorage.getItem('duodrop_current_page') || 'discover';
+  showPage(savedPage);
   // Load fresh data from server in background
   await loadServerData();
   // Re-initialize icons after dynamic content loads
