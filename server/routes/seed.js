@@ -11,28 +11,28 @@ const cloudinary = require('../config/cloudinary');
 /* ── Demo artists ─────────────────────────────────────────── */
 const DEMO_ARTISTS = [
   {
-    username: 'Helis-Aeon', name: 'Helis Aeon',
-    email: 'helis@duodrop.demo', bio: 'Afrobeats artist from Blantyre. Inspired by the streets and the stars.',
+    username: 'DemoArtist1', name: 'Demo Artist 1',
+    email: 'artist1@duodrop.demo', bio: 'Afrobeats artist from Blantyre.',
     genre: 'Afrobeats',
   },
   {
-    username: 'Five-Dino', name: 'Five G Dino',
-    email: 'fivedino@duodrop.demo', bio: 'Gospel and praise artist bringing hope through music from Lilongwe.',
+    username: 'DemoArtist2', name: 'Demo Artist 2',
+    email: 'artist2@duodrop.demo', bio: 'Gospel and praise artist from Lilongwe.',
     genre: 'Gospel',
   },
   {
-    username: 'TamandaVox', name: 'Tamanda Vox',
-    email: 'tamanda@duodrop.demo', bio: 'R&B songstress with a voice that moves mountains. Based in Mzuzu.',
+    username: 'DemoArtist3', name: 'Demo Artist 3',
+    email: 'artist3@duodrop.demo', bio: 'R&B songstress based in Mzuzu.',
     genre: 'R&B / Soul',
   },
   {
-    username: 'BlakeCool', name: 'Blake C. Phiri',
-    email: 'blake@duodrop.demo', bio: 'Hip-hop lyricist. Words are my weapon. Born and bred in Zomba.',
+    username: 'DemoArtist4', name: 'Demo Artist 4',
+    email: 'artist4@duodrop.demo', bio: 'Hip-hop lyricist from Zomba.',
     genre: 'Hip-Hop',
   },
   {
-    username: 'GraceSound', name: 'Grace Banda',
-    email: 'grace@duodrop.demo', bio: 'Traditional Malawian sounds with a modern twist. Balaka born.',
+    username: 'DemoArtist5', name: 'Demo Artist 5',
+    email: 'artist5@duodrop.demo', bio: 'Traditional Malawian sounds.',
     genre: 'Traditional',
   },
 ];
@@ -47,7 +47,7 @@ const SONG_TITLES = [
 
 const GENRES = ['Afrobeats','Gospel','R&B / Soul','Hip-Hop','Traditional','Malawi Pop','Praise & Worship','Reggae'];
 
-const DEMO_PASSWORD = 'DuoDrop@Demo2025!'; // single safe password for all demo accounts
+const DEMO_PASSWORD = process.env.DEMO_ACCOUNT_PASSWORD || 'change_me_in_env'; 
 
 /* ── Generate a Cloudinary placeholder artwork via URL transformation ── */
 function cloudinaryPlaceholder(artistName, songTitle, colorHex) {
