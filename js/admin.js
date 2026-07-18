@@ -90,12 +90,12 @@ function renderAdminUsers() {
             <tr>
               <td><strong>${u.name}</strong><br><span class="dim">@${u.username}</span></td>
               <td>${u.email}</td>
-              <td><span class="status-badge ${u.role}">${u.role === 'admin' ? '🛡 Admin' : u.role === 'artist' ? '🎤 Artist' : '🎵 Fan'}</span></td>
+              <td><span class="status-badge ${u.role}">${u.role === 'admin' ? '<i data-lucide="shield" style="width:14px;height:14px;vertical-align:middle;margin-right:4px"></i> Admin' : u.role === 'artist' ? '<i data-lucide="mic" style="width:14px;height:14px;vertical-align:middle;margin-right:4px"></i> Artist' : '<i data-lucide="music" style="width:14px;height:14px;vertical-align:middle;margin-right:4px"></i> Fan'}</span></td>
               <td><span class="status-badge ${u.status || 'active'}">${u.status || 'active'}</span></td>
               <td>${u.createdAt ? new Date(u.createdAt).toLocaleDateString() : '—'}</td>
               <td>
                 ${u.role !== 'admin' ? `
-                  <button class="btn btn-sm btn-outline" onclick="adminBanUser('${u.id}', ${u.status === 'banned' ? 'false' : 'true'})">${u.status === 'banned' ? '✅ Unban' : '🚫 Ban'}</button>
+                  <button class="btn btn-sm btn-outline" onclick="adminBanUser('${u.id}', ${u.status === 'banned' ? 'false' : 'true'})">${u.status === 'banned' ? '<i data-lucide="check-circle" style="width:14px;height:14px;vertical-align:middle;margin-right:4px"></i> Unban' : '<i data-lucide="ban" style="width:14px;height:14px;vertical-align:middle;margin-right:4px"></i> Ban'}</button>
                 ` : '<span class="dim">—</span>'}
               </td>
             </tr>
@@ -112,22 +112,30 @@ function renderAdminSongs() {
     <div class="admin-table-wrap">
       <table class="admin-table">
         <thead><tr>
-          <th>Song</th><th>Artist</th><th>Genre</th><th>Plays</th><th>Status</th><th>Actions</th>
+          <th>Song</th><th>Artist</th><th>Genre</th><th>Plays</th><th>Status</th><th></th>
         </tr></thead>
         <tbody>
           ${songs.map(s => {
             const artist = _adminData.users.find(u => u.id === s.artistId);
+            const isApproved = s.status === 'approved';
+            const isRejected = s.status === 'rejected';
             return `
               <tr>
                 <td><strong>${s.title}</strong></td>
                 <td>${artist ? artist.name : '—'}</td>
                 <td>${s.genre}</td>
-                <td>▶ ${fmtNum(s.plays||0)}</td>
+                <td><i data-lucide="play" style="width:14px;height:14px;display:inline-block;vertical-align:middle;margin-right:4px;"></i> ${fmtNum(s.plays||0)}</td>
                 <td><span class="status-badge ${s.status || 'pending'}">${s.status || 'pending'}</span></td>
                 <td>
-                  ${s.status !== 'approved' ? `<button class="btn btn-sm btn-green" onclick="adminApproveSong('${s.id}')">✅ Approve</button>` : ''}
-                  ${s.status !== 'rejected' ? `<button class="btn btn-sm btn-danger" onclick="adminRejectSong('${s.id}')">❌ Reject</button>` : ''}
-                  <button class="btn btn-sm btn-danger" onclick="adminDeleteSong('${s.id}', '${s.title.replace(/'/g, "\\'")}')">🗑 Delete</button>
+                  <div class="admin-actions">
+                    <button class="admin-kebab" onclick="toggleAdminDropdown(event, this)" title="Actions">&#8942;</button>
+                    <div class="admin-dropdown">
+                      ${!isApproved ? `<button class="admin-dropdown-item" data-action="approve" onclick="closeAllAdminDropdowns();adminApproveSong('${s.id}')"><i data-lucide="check-circle"></i> Approve</button>` : ''}
+                      ${!isRejected ? `<button class="admin-dropdown-item" data-action="reject" onclick="closeAllAdminDropdowns();adminRejectSong('${s.id}')"><i data-lucide="x-circle"></i> Reject</button>` : ''}
+                      ${(!isApproved || !isRejected) ? '<div class="admin-dropdown-divider"></div>' : ''}
+                      <button class="admin-dropdown-item" data-action="delete" onclick="closeAllAdminDropdowns();adminDeleteSong('${s.id}', '${s.title.replace(/'/g, "\\'")}')"><i data-lucide="trash-2"></i> Delete</button>
+                    </div>
+                  </div>
                 </td>
               </tr>`;
           }).join('')}
@@ -143,7 +151,7 @@ function renderAdminPending() {
     <div class="admin-table-wrap">
       <table class="admin-table">
         <thead><tr>
-          <th>Song</th><th>Artist</th><th>Genre</th><th>Tx Ref</th><th>Submitted</th><th>Actions</th>
+          <th>Song</th><th>Artist</th><th>Genre</th><th>Tx Ref</th><th>Submitted</th><th></th>
         </tr></thead>
         <tbody>
           ${pending.map(s => {
@@ -156,9 +164,15 @@ function renderAdminPending() {
                 <td><code>${s.txref || '—'}</code></td>
                 <td>${s.createdAt ? new Date(s.createdAt).toLocaleDateString() : '—'}</td>
                 <td>
-                  <button class="btn btn-sm btn-green" onclick="adminApproveSong('${s.id}')">✅ Approve</button>
-                  <button class="btn btn-sm btn-danger" onclick="adminRejectSong('${s.id}')">❌ Reject</button>
-                  <button class="btn btn-sm btn-danger" onclick="adminDeleteSong('${s.id}', '${s.title.replace(/'/g, "\\'")}')">🗑 Delete</button>
+                  <div class="admin-actions">
+                    <button class="admin-kebab" onclick="toggleAdminDropdown(event, this)" title="Actions">&#8942;</button>
+                    <div class="admin-dropdown">
+                      <button class="admin-dropdown-item" data-action="approve" onclick="closeAllAdminDropdowns();adminApproveSong('${s.id}')"><i data-lucide="check-circle"></i> Approve</button>
+                      <button class="admin-dropdown-item" data-action="reject" onclick="closeAllAdminDropdowns();adminRejectSong('${s.id}')"><i data-lucide="x-circle"></i> Reject</button>
+                      <div class="admin-dropdown-divider"></div>
+                      <button class="admin-dropdown-item" data-action="delete" onclick="closeAllAdminDropdowns();adminDeleteSong('${s.id}', '${s.title.replace(/'/g, "\\'")}')"><i data-lucide="trash-2"></i> Delete</button>
+                    </div>
+                  </div>
                 </td>
               </tr>`;
           }).join('')}
@@ -171,7 +185,7 @@ async function adminBanUser(userId, banStatus) {
   if (!confirm(banStatus ? `Ban this user?` : `Unban this user?`)) return;
   try {
     await window.API.admin.banUser(userId, banStatus);
-    showToast(banStatus ? `🚫 User banned` : `✅ User unbanned`, banStatus ? 'error' : 'success');
+    showToast(banStatus ? `<i data-lucide="ban" style="width:16px;height:16px;vertical-align:middle"></i> User banned` : `<i data-lucide="check-circle" style="width:16px;height:16px;vertical-align:middle"></i> User unbanned`, banStatus ? 'error' : 'success');
     renderAdminDashboard();
   } catch (err) {
     showToast(err.message, 'error');
@@ -181,7 +195,7 @@ async function adminBanUser(userId, banStatus) {
 async function adminApproveSong(songId) {
   try {
     await window.API.admin.approveSong(songId, 'approved');
-    showToast(`✅ Song approved and published!`, 'success');
+    showToast(`<i data-lucide="check-circle" style="width:16px;height:16px;vertical-align:middle"></i> Song approved and published!`, 'success');
     renderAdminDashboard();
   } catch (err) {
     showToast(err.message, 'error');
@@ -192,7 +206,7 @@ async function adminRejectSong(songId) {
   if (!confirm(`Reject this song?`)) return;
   try {
     await window.API.admin.approveSong(songId, 'rejected');
-    showToast(`❌ Song rejected`, 'error');
+    showToast(`<i data-lucide="x-circle" style="width:16px;height:16px;vertical-align:middle"></i> Song rejected`, 'error');
     renderAdminDashboard();
   } catch (err) {
     showToast(err.message, 'error');
@@ -204,9 +218,28 @@ async function adminDeleteSong(songId, songTitle) {
   if (!confirm(`Are you absolutely sure? The song will be permanently removed.`)) return;
   try {
     await window.API.admin.deleteSong(songId);
-    showToast(`🗑 "${songTitle}" deleted`, 'success');
+    showToast(`<i data-lucide="trash-2" style="width:16px;height:16px;vertical-align:middle"></i> "${songTitle}" deleted`, 'success');
     renderAdminDashboard();
   } catch (err) {
     showToast(err.message, 'error');
   }
 }
+
+function toggleAdminDropdown(e, btn) {
+  e.stopPropagation();
+  const dd = btn.nextElementSibling;
+  const wasOpen = dd.classList.contains('open');
+  closeAllAdminDropdowns();
+  if (!wasOpen) {
+    dd.classList.add('open');
+    if (window.lucide) lucide.createIcons({ nodes: [dd] });
+  }
+}
+
+function closeAllAdminDropdowns() {
+  document.querySelectorAll('.admin-dropdown.open').forEach(d => d.classList.remove('open'));
+}
+
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('.admin-actions')) closeAllAdminDropdowns();
+});
