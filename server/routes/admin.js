@@ -125,4 +125,16 @@ router.get('/songs', async (req, res) => {
   }
 });
 
+// ── Delete song ──────────────────────────────────────────────
+router.delete('/songs/:id', async (req, res) => {
+  try {
+    await dbGet(`songs/${req.params.id}`, req.idToken); // verify exists
+    const { dbDelete } = require('../config/firebase');
+    await dbDelete(`songs/${req.params.id}`, req.idToken);
+    res.json({ message: 'Song deleted successfully' });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to delete song' });
+  }
+});
+
 module.exports = router;

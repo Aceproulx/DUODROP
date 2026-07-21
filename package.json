@@ -1,0 +1,13 @@
+{
+  "name": "duodrop",
+  "version": "1.0.0",
+  "description": "DUODROP — Malawi Music Streaming Platform",
+  "scripts": {
+    "dev": "cd server && npm run dev",
+    "start": "cd server && npm start",
+    "install-deps": "cd server && npm install",
+    "seed": "cd server && node -e \"require('./index.js'); const fetch = require('node-fetch'); fetch('http://localhost:3000/api/seed', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({secret:require('dotenv').config({path:'server/.env'}).parsed.SEED_SECRET||'change_me_in_env'})}).then(r=>r.json()).then(d=>{console.log(d);process.exit()}).catch(e=>{console.error(e);process.exit(1)})\""
+  },
+  "keywords": ["music", "streaming", "malawi"],
+  "license": "MIT"
+}

@@ -43,13 +43,23 @@ function playSong(id, queue) {
   if (_npOpen) renderNpQueue();
 
   // Audio
-  if (song.audioUrl) {
+  if (song.audioUrl && song.audioUrl.trim()) {
     audio.src = song.audioUrl;
     audio.load();
-    audio.play().catch(() => {});
+    audio.play().catch(err => {
+      console.warn('[Player] Audio failed to play:', song.title, song.audioUrl, err);
+      showToast('Audio failed to load. Trying next track...', 'error');
+      nextTrack();
+    });
   } else {
-    // Demo mode — no real audio, simulate play
-    simulateDemoPlay(song);
+    console.warn('[Player] No audio URL for:', song.title, '| id:', song.id, '| audioUrl:', song.audioUrl);
+    showToast(`"${song.title}" has no audio file. Skipping...`, 'error');
+    // Auto-skip to next playable track
+    if (_queue.length > 1) {
+      setTimeout(() => nextTrack(), 800);
+    } else {
+      simulateDemoPlay(song);
+    }
   }
 
   // Animate vinyl on hero
@@ -300,15 +310,6 @@ function updateNowPlayingUI(song) {
   const liked  = cu ? DB.Likes.isLiked(cu.id, song.id) : false;
 
   // Title + artist
-  const ov = document.getElementById('np-overlay');
-  if (ov) {
-    if (song.artwork) {
-      ov.style.setProperty('--np-bg-img', `url(${song.artwork})`);
-    } else {
-      ov.style.setProperty('--np-bg-img', 'none');
-    }
-  }
-
   const t = document.getElementById('np-title');
   const a = document.getElementById('np-artist');
   if (t) t.textContent = song.title;

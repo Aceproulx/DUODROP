@@ -193,6 +193,9 @@ const API = {
     approveSong(id, status) {
       return _fetch(`/api/admin/songs/${id}`, { method: 'PATCH', body: JSON.stringify({ status }) });
     },
+    deleteSong(id) {
+      return _fetch(`/api/admin/songs/${id}`, { method: 'DELETE' });
+    },
     users()              { return _fetch('/api/admin/users'); },
     banUser(id, banned)  {
       return _fetch(`/api/admin/users/${id}/ban`, { method: 'PATCH', body: JSON.stringify({ banned }) });
