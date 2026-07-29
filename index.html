@@ -15,6 +15,8 @@
 <!-- Firebase SDK (for Google Sign-In) -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<!-- PayChangu Inline Checkout -->
+<script src="https://in.paychangu.com/js/popup.js"></script>
 </head>
 
 <body>
@@ -188,181 +190,179 @@
   <!-- ════ PAGE: UPLOAD ════ -->
   <section class="page" id="page-upload">
     <div class="page-content">
-      <div class="page-hdr"><h1><i data-lucide="upload-cloud"></i> Upload Your Music</h1><p>Share your Music with Malawi and the world</p></div>
-      <div class="payment-notice">
-        <div class="pn-icon"><i data-lucide="credit-card"></i></div>
-        <div class="pn-text">
-          <strong>Upload Fee: MK 5,000 per song</strong><br>
-          Pay to <strong>National Bank Account: 1014013314</strong> via Airtel Money, 
-          Mpamba or bank transfer. Enter your transaction reference below to verify payment.
+
+      <!-- Hero Header -->
+      <div class="up-hero">
+        <div class="up-hero-text">
+          <h1><i data-lucide="upload-cloud"></i> Upload Your Music</h1>
+          <p>Share your sound with Malawi and the world. Every upload is reviewed by our team before going live.</p>
         </div>
-
-
+        <div class="up-fee-badge">
+          <i data-lucide="credit-card"></i>
+          <div>
+            <strong>MK 5,000</strong>
+            <span>per song upload</span>
+          </div>
+        </div>
       </div>
-      <div class="upload-layout">
-        <div class="upload-form-box">
-          <form id="upload-form" onsubmit="submitUpload(event)" novalidate>
-            <div class="upload-form-grid">
-              <!-- Left Column: Info -->
-              <div class="upload-col">
-                <div class="form-section">📋 Song Information</div>
-            <div class="fg">
-              <label>Song Title *</label>
-              <input type="text" id="u-title" placeholder="Enter your song title">
-              <div class="fe" id="err-u-title"></div>
+
+      <!-- Step Indicator -->
+      <div class="up-steps">
+        <div class="up-step active" id="step-ind-1">
+          <div class="up-step-dot">1</div>
+          <span>Song Details</span>
+        </div>
+        <div class="up-step-line"></div>
+        <div class="up-step" id="step-ind-2">
+          <div class="up-step-dot">2</div>
+          <span>Upload Files</span>
+        </div>
+        <div class="up-step-line"></div>
+        <div class="up-step" id="step-ind-3">
+          <div class="up-step-dot">3</div>
+          <span>Pay &amp; Publish</span>
+        </div>
+      </div>
+
+      <!-- Form -->
+      <form id="upload-form" onsubmit="submitUpload(event)" novalidate>
+        <div class="up-grid">
+
+          <!-- ── LEFT: Song Information ────────────────────── -->
+          <div class="up-card">
+            <div class="up-card-hdr">
+              <div class="up-card-hdr-icon"><i data-lucide="music-2"></i></div>
+              <div>
+                <h2>Song Information</h2>
+                <p>Tell us about your track</p>
+              </div>
             </div>
 
-            <div class="form-row">
+            <div class="up-fields">
               <div class="fg">
-                <label>Genre *</label>
-                <select id="u-genre">
-                  <option value="">Select genre…</option>
-
-                  <option>Afrobeats</option><option>Gospel</option><option>Hip-Hop</option>
-
-                  <option>R&amp;B / Soul</option><option>Reggae</option><option>Malawi Pop</option>
-
-                  <option>Praise &amp; Worship</option><option>Traditional</option>
-
-                  <option>Dance / EDM</option><option>Other</option>
-
-                </select>
-                <div class="fe" id="err-u-genre"></div>
+                <label class="up-label">Song Title <span class="req">*</span></label>
+                <input type="text" id="u-title" class="up-input" placeholder="What's your song called?">
+                <div class="fe" id="err-u-title"></div>
               </div>
-              <div class="fg">
-                <label>Content Type</label>
-                <select id="u-type">
-                  <option value="free">Free — everyone can stream</option>
-                  <option value="premium">Premium — paid download</option>
-                </select>
-              </div>
-            </div>
-            <div class="fg">
-              <label>Description</label>
-              <textarea id="u-desc" rows="3" placeholder="Tell fans about this track…"></textarea>
-              <div class="fe" id="err-u-desc"></div>
-            </div>
-            <div class="fg">
-              <label>Tags <span style="opacity:.5;">(comma separated)</span></label>
-              <input type="text" id="u-tags" placeholder="love, summer, 2024, malawi">
-            </div>
-            <div class="fg">
-              <label>Price (MK) — for Premium</label>
-              <input type="number" id="u-price" placeholder="0 = free" min="0">
-            </div>
-              </div> <!-- End Left Column -->
 
-              <!-- Right Column: Media & Payment -->
-              <div class="upload-col">
-                <div class="form-section"><i data-lucide="music"></i> Audio File</div>
-            <div class="file-drop" id="audio-drop" onclick="document.getElementById('u-audio').click()">
-              <div class="fd-content" id="audio-fd-content">
-                <div class="fd-icon"><i data-lucide="music"></i></div>
-                <div class="fd-label">Drop audio here or <span>click to browse</span></div>
-                <div class="fd-hint">MP3, WAV, FLAC, AAC — max 50 MB</div>
-              </div>
-              <audio id="audio-preview" controls style="display:none; width:100%; margin-top:10px;" onclick="event.stopPropagation()"></audio>
-            </div>
-
-
-            <input type="file" id="u-audio" accept="audio/*" style="display:none" onchange="handleAudioFile(this)">
-            <div class="fe" id="err-u-audio"></div>
-            <div class="form-section"><i data-lucide="image"></i> Cover Artwork</div>
-
-            <div class="file-drop artwork-drop" id="art-drop" onclick="document.getElementById('u-art').click()">
-              <div id="art-preview-inner">
-                <div class="fd-icon"><i data-lucide="image"></i></div>
-                <div class="fd-label">Click to upload artwork</div>
-                <div class="fd-hint">JPG or PNG — min 500×500px</div>
-              </div>
-            </div>
-
-
-            <input type="file" id="u-art" accept="image/*" style="display:none" onchange="handleArtwork(this)">
-            <div class="fe" id="err-u-art"></div>
-            <div class="form-section"><i data-lucide="credit-card"></i> Payment Verification</div>
-
-
-            <div class="form-row">
-              <div class="fg">
-                <label>Payment Method</label>
-                <div class="pay-method-cards">
-                  <label class="pm-card">
-                    <input type="radio" name="u-paymethod" value="national-bank" checked>
-                    <div class="pm-card-inner">
-                      <i data-lucide="landmark"></i>
-                      <span>National Bank</span>
-                      <small>1014013314</small>
-                    </div>
-                  </label>
-                  <label class="pm-card">
-                    <input type="radio" name="u-paymethod" value="airtel">
-                    <div class="pm-card-inner">
-                      <i data-lucide="smartphone"></i>
-                      <span>Airtel Money</span>
-                      <small>0984 076 531</small>
-                    </div>
-                  </label>
-                  <label class="pm-card">
-                    <input type="radio" name="u-paymethod" value="mpamba">
-                    <div class="pm-card-inner">
-                      <i data-lucide="smartphone"></i>
-                      <span>Mpamba/TNM</span>
-                      <small>0888 240 630</small>
-                    </div>
-                  </label>
+              <div class="up-row2">
+                <div class="fg">
+                  <label class="up-label">Genre <span class="req">*</span></label>
+                  <select id="u-genre" class="up-input">
+                    <option value="">Select genre…</option>
+                    <option>Afrobeats</option>
+                    <option>Gospel</option>
+                    <option>Hip-Hop</option>
+                    <option>R&amp;B / Soul</option>
+                    <option>Reggae</option>
+                    <option>Malawi Pop</option>
+                    <option>Praise &amp; Worship</option>
+                    <option>Traditional</option>
+                    <option>Dance / EDM</option>
+                    <option>Other</option>
+                  </select>
+                  <div class="fe" id="err-u-genre"></div>
+                </div>
+                <div class="fg">
+                  <label class="up-label">Content Type</label>
+                  <select id="u-type" class="up-input">
+                    <option value="free">🆓 Free — everyone can stream</option>
+                    <option value="premium">⭐ Premium — paid download</option>
+                  </select>
                 </div>
               </div>
 
+              <div class="fg">
+                <label class="up-label">Description <span class="req">*</span></label>
+                <textarea id="u-desc" class="up-input up-textarea" rows="4" placeholder="Tell your fans what this track is about, its story, inspiration…"></textarea>
+                <div class="fe" id="err-u-desc"></div>
+              </div>
 
               <div class="fg">
-                <label>Amount Paid (MK) *</label>
-                <label class="cb-label" style="margin-top: 8px;">
-                  <input type="checkbox" id="u-amount-cb">
-                  I have paid MK 5,000 for this upload
-                </label>
-                <input type="hidden" id="u-amount" value="0">
-                <div class="fe" id="err-u-amount"></div>
+                <label class="up-label">Tags <span class="up-label-hint">(comma separated)</span></label>
+                <input type="text" id="u-tags" class="up-input" placeholder="e.g. love, summer, 2024, malawi">
               </div>
             </div>
+          </div>
 
+          <!-- ── RIGHT: Files ──────────────────────────────── -->
+          <div class="up-right-col">
 
-            <div class="fg">
-              <label>Transaction Reference *</label>
-              <input type="text" id="u-txref" placeholder="e.g. NBM-20240601-123456">
-              <div class="fe" id="err-u-txref"></div>
+            <!-- Audio Drop -->
+            <div class="up-card">
+              <div class="up-card-hdr">
+                <div class="up-card-hdr-icon"><i data-lucide="headphones"></i></div>
+                <div>
+                  <h2>Audio File</h2>
+                  <p>MP3, WAV, FLAC, AAC — max 50 MB</p>
+                </div>
+              </div>
+              <div class="up-drop" id="audio-drop" onclick="document.getElementById('u-audio').click()">
+                <div id="audio-fd-content" class="up-drop-inner">
+                  <div class="up-drop-icon"><i data-lucide="music"></i></div>
+                  <div class="up-drop-title">Drop your audio here</div>
+                  <div class="up-drop-sub">or <span class="up-browse">click to browse</span></div>
+                </div>
+                <audio id="audio-preview" controls style="display:none; width:100%; margin-top:12px; border-radius:8px;" onclick="event.stopPropagation()"></audio>
+              </div>
+              <div class="fe" id="err-u-audio"></div>
+              <input type="file" id="u-audio" accept="audio/*" style="display:none" onchange="handleAudioFile(this)">
             </div>
 
-            <div class="fg">
-              <label class="cb-label">
-                <input type="checkbox" id="u-agree">
-                I confirm this is my original work and I have paid MK 5,000 to National Bank (1014013314)
-              </label>
-              <div class="fe" id="err-u-agree"></div>
+            <!-- Artwork Drop -->
+            <div class="up-card">
+              <div class="up-card-hdr">
+                <div class="up-card-hdr-icon"><i data-lucide="image"></i></div>
+                <div>
+                  <h2>Cover Artwork</h2>
+                  <p>JPG or PNG — min 500×500px</p>
+                </div>
+              </div>
+              <div class="up-drop up-drop-art" id="art-drop" onclick="document.getElementById('u-art').click()">
+                <div id="art-preview-inner" class="up-drop-inner">
+                  <div class="up-drop-icon"><i data-lucide="image"></i></div>
+                  <div class="up-drop-title">Drop your artwork here</div>
+                  <div class="up-drop-sub">or <span class="up-browse">click to browse</span></div>
+                </div>
+              </div>
+              <div class="fe" id="err-u-art"></div>
+              <input type="file" id="u-art" accept="image/*" style="display:none" onchange="handleArtwork(this)">
             </div>
 
+          </div><!-- end up-right-col -->
+        </div><!-- end up-grid -->
 
-              </div> <!-- End Right Column -->
-            </div> <!-- End Grid -->
+        <!-- Hidden fields for JS logic -->
+        <input type="hidden" id="u-price" value="0">
+        <input type="hidden" id="u-amount" value="5000">
+        <input type="radio" name="u-paymethod" value="paychangu" checked style="display:none;">
+        <input type="checkbox" id="u-amount-cb" checked style="display:none;">
+        <input type="checkbox" id="u-agree" checked style="display:none;">
 
-            <div id="upload-progress" style="display:none;">
-              <div class="prog-bar"><div class="prog-fill" id="upload-bar-fill"></div></div>
-              <div class="prog-text" id="upload-prog-text">Uploading…</div>
-            </div>
-
-
-            <button type="submit" class="btn btn-primary btn-block btn-lg" style="margin-top:16px;">🚀 Submit Upload</button>
-            <div class="zod-status" id="zod-status"></div>
-          </form>
+        <!-- Progress Bar -->
+        <div id="upload-progress" class="up-progress" style="display:none;">
+          <div class="up-progress-bar"><div class="up-progress-fill" id="upload-bar-fill"></div></div>
+          <div class="up-progress-text" id="upload-prog-text">Uploading…</div>
         </div>
 
+        <!-- CTA Footer -->
+        <div class="up-footer">
+          <div class="up-footer-info">
+            <i data-lucide="shield-check"></i>
+            <span>Secure payment powered by <strong>PayChangu</strong> — MK 5,000 upload fee</span>
+          </div>
+          <button type="submit" class="up-submit-btn" id="up-submit-btn">
+            <i data-lucide="upload-cloud"></i>
+            Upload &amp; Pay with PayChangu
+          </button>
+        </div>
 
-        <!-- Guidelines moved to modal popup -->
-      </div>
+        <div class="zod-status" id="zod-status"></div>
+      </form>
 
     </div>
-
   </section>
+
 
   <!-- ════ PAGE: ANALYTICS DASHBOARD ════ -->
   <section class="page" id="page-dashboard">
@@ -859,7 +859,7 @@
         <li><i data-lucide="x-circle" style="color:var(--danger, #ff4d4f); width:16px;"></i> No plagiarism or covers without licence</li>
       </ul>
       <p class="dim" style="font-size:13px; margin-bottom:16px;">By clicking Agree & Upload, you agree to our Terms of Service and confirm you hold all rights to this content.</p>
-      <button class="btn btn-primary btn-block" onclick="agreeAndUpload()"><i data-lucide="upload"></i> Agree & Upload</button>
+      <button class="btn btn-primary btn-block" onclick="agreeAndUpload()"><i data-lucide="credit-card"></i> Proceed to payment with PayChangu</button>
     </div>
   </div>
 </div>

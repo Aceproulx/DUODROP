@@ -19,12 +19,13 @@ app.use(express.json({ limit: '10mb' }));
 app.use(morgan('dev'));
 
 // ── API Routes ────────────────────────────────────────────────
-app.use('/api/auth',    require('./routes/auth'));
-app.use('/api/songs',   require('./routes/songs'));
-app.use('/api/upload',  require('./routes/upload'));
-app.use('/api/artists', require('./routes/artists'));
-app.use('/api/admin',   require('./routes/admin'));
-app.use('/api/seed',    require('./routes/seed'));
+app.use('/api/auth',     require('./routes/auth'));
+app.use('/api/songs',    require('./routes/songs'));
+app.use('/api/upload',   require('./routes/upload'));
+app.use('/api/artists',  require('./routes/artists'));
+app.use('/api/admin',    require('./routes/admin'));
+app.use('/api/seed',     require('./routes/seed'));
+app.use('/api/payments', require('./routes/payments'));
 
 // ── Health check ──────────────────────────────────────────────
 app.get('/api/health', (_req, res) => res.json({ status: 'ok', app: 'DUODROP', time: new Date().toISOString() }));

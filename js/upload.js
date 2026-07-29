@@ -1,17 +1,88 @@
 /* ================================================================
-   DUODROP — Upload Module (with Zod validation)
+   DUODROP — Upload Module
+   Payment is REQUIRED via PayChangu before any song is saved.
+   Flow:
+     1. Artist fills form & selects files → clicks "Upload"
+     2. Guidelines modal → "Proceed to payment with PayChangu"
+     3. Files upload to Cloudinary (so URLs are ready)
+     4. PaychanguCheckout() popup opens
+     5. On success PayChangu redirects to ?payment=success&tx_ref=...
+     6. We verify the tx_ref with PayChangu API (server-side)
+     7. If verified, song is saved — otherwise, upload is rejected
    ================================================================ */
 
 let _audioFile   = null;
 let _artworkFile = null;
 let _artworkUrl  = '';
 
-// ── File handlers ─────────────────────────────────────────────
+/* ── On page load: handle PayChangu return callback ───────────── */
+document.addEventListener('DOMContentLoaded', async () => {
+  const urlParams = new URLSearchParams(window.location.search);
+
+  if (urlParams.get('payment') === 'success') {
+    const txRef      = urlParams.get('tx_ref');
+    const pendingJson = localStorage.getItem('_pendingPaychanguUpload');
+
+    if (pendingJson && txRef) {
+      const progressEl = document.getElementById('upload-progress');
+      const barFill    = document.getElementById('upload-bar-fill');
+      const progText   = document.getElementById('upload-prog-text');
+
+      if (progressEl) progressEl.style.display = 'block';
+      if (barFill)    barFill.style.width = '80%';
+      if (progText)   progText.textContent = 'Verifying payment…';
+
+      try {
+        const pendingData = JSON.parse(pendingJson);
+
+        // ── Verify payment with server before saving ──────────
+        if (barFill)  barFill.style.width = '88%';
+        if (progText) progText.textContent = 'Confirming payment with PayChangu…';
+
+        const verifyRes = await _fetch(`/api/payments/verify?tx_ref=${encodeURIComponent(txRef)}`, 'GET');
+
+        if (!verifyRes || verifyRes.status !== 'success') {
+          throw new Error('Payment could not be verified. Please contact support.');
+        }
+
+        // ── Payment confirmed — save the song ─────────────────
+        if (barFill)  barFill.style.width = '95%';
+        if (progText) progText.textContent = 'Saving your song…';
+
+        await API.songs.create({ ...pendingData, txref: txRef });
+        localStorage.removeItem('_pendingPaychanguUpload');
+
+        window.history.replaceState({}, document.title, window.location.pathname);
+        showToast(`"${pendingData.title}" submitted! It will go live after admin review.`, 'success');
+        if (typeof showPage === 'function') showPage('dashboard');
+
+      } catch (err) {
+        console.error('Payment verification / save error:', err);
+        localStorage.removeItem('_pendingPaychanguUpload');
+        window.history.replaceState({}, document.title, window.location.pathname);
+        showToast('❌ ' + err.message, 'error');
+      } finally {
+        if (progressEl) progressEl.style.display = 'none';
+      }
+
+    } else if (!pendingJson) {
+      // No pending upload — ignore stale redirect
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }
+
+  if (urlParams.get('payment') === 'cancelled') {
+    localStorage.removeItem('_pendingPaychanguUpload');
+    window.history.replaceState({}, document.title, window.location.pathname);
+    showToast('Payment was cancelled. Your files are safe — try again when ready.', 'warning');
+  }
+});
+
+/* ── File handlers ─────────────────────────────────────────────── */
 function handleAudioFile(input) {
   const file = input.files[0];
   if (!file) return;
 
-  // Zod file validation
   const schema = z.file()
     .maxSize(50 * 1024 * 1024, 'Audio file must be max 50 MB')
     .accept(['audio/'], 'Only audio files are accepted (MP3, WAV, FLAC, AAC)');
@@ -29,21 +100,15 @@ function handleAudioFile(input) {
   if (window.lucide) lucide.createIcons();
   document.getElementById('audio-drop').classList.add('has-file');
 
-  // Try to read duration and setup preview
   const url = URL.createObjectURL(file);
   const tmpAudio = new Audio(url);
   tmpAudio.onloadedmetadata = () => {
     const dur = fmtTime(tmpAudio.duration);
     label.innerHTML += `<div class="fd-hint">Duration: ${dur}</div>`;
-    // We do NOT revoke the object URL here because we need it for the preview player
   };
-  
-  // Set up preview player
+
   const preview = document.getElementById('audio-preview');
-  if (preview) {
-    preview.src = url;
-    preview.style.display = 'block';
-  }
+  if (preview) { preview.src = url; preview.style.display = 'block'; }
 }
 
 function handleArtwork(input) {
@@ -71,7 +136,7 @@ function handleArtwork(input) {
   reader.readAsDataURL(file);
 }
 
-// Drag-and-drop support
+/* Drag-and-drop */
 ['audio-drop', 'art-drop'].forEach(id => {
   const el = document.getElementById(id);
   if (!el) return;
@@ -82,11 +147,11 @@ function handleArtwork(input) {
     const file = e.dataTransfer.files[0];
     if (!file) return;
     if (id === 'audio-drop') { document.getElementById('u-audio').files = e.dataTransfer.files; handleAudioFile(document.getElementById('u-audio')); }
-    else { document.getElementById('u-art').files   = e.dataTransfer.files; handleArtwork(document.getElementById('u-art')); }
+    else { document.getElementById('u-art').files = e.dataTransfer.files; handleArtwork(document.getElementById('u-art')); }
   });
 });
 
-// ── Submit ────────────────────────────────────────────────────
+/* ── Form submit ─────────────────────────────────────────────── */
 function submitUpload(e) {
   e.preventDefault();
 
@@ -98,55 +163,27 @@ function submitUpload(e) {
     return;
   }
 
-  // Gather values
-  const title    = document.getElementById('u-title').value.trim();
-  const genre    = document.getElementById('u-genre').value;
-  const desc     = document.getElementById('u-desc').value.trim();
-  const tags     = document.getElementById('u-tags').value.trim();
-  const type     = document.getElementById('u-type').value;
-  const price    = parseFloat(document.getElementById('u-price').value || 0);
-  const txref    = document.getElementById('u-txref').value.trim();
-  
-  // Amount paid checkbox logic
-  const amountCb = document.getElementById('u-amount-cb');
-  let amount = 0;
-  if (amountCb && amountCb.checked) {
-    amount = 5000;
-    // Set hidden field so zod validation (which might check id 'u-amount') passes if it expects a number
-    document.getElementById('u-amount').value = 5000;
-  } else {
-    document.getElementById('u-amount').value = 0;
-  }
+  const title = document.getElementById('u-title').value.trim();
+  const genre = document.getElementById('u-genre').value;
+  const desc  = document.getElementById('u-desc').value.trim();
+  const tags  = document.getElementById('u-tags').value.trim();
+  const type  = document.getElementById('u-type').value;
+  const price = parseFloat(document.getElementById('u-price').value || 0);
 
-  const agree    = document.getElementById('u-agree').checked;
+  // Generate a unique tx_ref for this upload
+  const txref = 'DUODROP-' + Date.now() + '-' + Math.floor(Math.random() * 9999);
 
-  // Zod schema validation
-  const schema = z.schemas.upload();
-  const values = { title, genre, desc, tags, type, txref, amount, agree };
-
-  const result = z.validateForm(schema, values, {
-    title:  'err-u-title',
-    genre:  'err-u-genre',
-    desc:   'err-u-desc',
-    txref:  'err-u-txref',
-    amount: 'err-u-amount',
-    agree:  'err-u-agree',
-  });
-
-  // Show Zod validation result
-  z.showStatus('zod-status', result);
-
-  if (!result.success) {
-    showToast('❌ Please fix the validation errors below', 'error');
-    return;
-  }
+  // Validate required metadata fields only
+  if (!title)  { showFieldError('err-u-title', 'Song title is required'); return; }
+  if (!genre)  { showFieldError('err-u-genre', 'Please select a genre'); return; }
+  if (!desc)   { showFieldError('err-u-desc',  'Please add a description'); return; }
 
   // File validation
   if (!_audioFile) { showFieldError('err-u-audio', 'Please upload your audio file'); return; }
   if (!_artworkFile && !_artworkUrl) { showFieldError('err-u-art', 'Please upload cover artwork'); return; }
 
-  // Save data globally and show guidelines modal
-  window._pendingUploadData = { title, genre, desc, tags, type, price, txref, amount, artistId: cu.id };
+  // Store data and show guidelines modal
+  window._pendingUploadData = { title, genre, desc, tags, type, price, txref, amount: 5000, artistId: cu.id };
   document.getElementById('modal-upload-guidelines').style.display = 'flex';
 }
 
@@ -166,11 +203,8 @@ window.activateArtistFromModal = async function() {
   try {
     const cu = DB.Users.current();
     if (cu) {
-      // Ensure we have _fetch exposed
       await _fetch('/api/artists/register', 'POST', { name: cu.name, bio: 'New artist on DUODROP' });
-      // Also update Firebase profile via the existing endpoint just to be thorough
       await _fetch('/api/auth/profile', 'PATCH', { role: 'artist' });
-      
       cu.role = 'artist';
       DB.Users.update(cu);
       showToast('Artist account activated!', 'success');
@@ -196,6 +230,7 @@ window.removeAudioFile = function(e) {
   if (window.lucide) lucide.createIcons();
 };
 
+/* ── Core upload pipeline ─────────────────────────────────────── */
 async function doUpload(data) {
   const progressEl = document.getElementById('upload-progress');
   const barFill    = document.getElementById('upload-bar-fill');
@@ -211,59 +246,77 @@ async function doUpload(data) {
   };
 
   try {
-    // ── Step 1: Sign audio upload ────────────────────────────
+    // Step 1: Sign audio upload
     setProgress(10, 'Preparing secure upload…');
     const audioSign = await API.upload.signAudio();
 
-    // ── Step 2: Upload audio to Cloudinary ───────────────────
+    // Step 2: Upload audio to Cloudinary
     setProgress(15, 'Uploading audio file…');
     const audioRes = await API.upload.toCloudinary(_audioFile, audioSign, pct => {
       setProgress(15 + Math.round(pct * 0.45), `Uploading audio… ${pct}%`);
     });
-    const audioUrl   = audioRes.secure_url;
-    const audioDur   = audioRes.duration
+    const audioUrl = audioRes.secure_url;
+    const audioDur = audioRes.duration
       ? `${Math.floor(audioRes.duration / 60)}:${String(Math.floor(audioRes.duration % 60)).padStart(2,'0')}`
       : '0:00';
 
-    // ── Step 3: Upload artwork to Cloudinary ─────────────────
+    // Step 3: Upload artwork to Cloudinary
     let artworkUrl = '';
     if (_artworkFile) {
       setProgress(62, 'Uploading cover artwork…');
-      const artSign  = await API.upload.signImage();
-      const artRes   = await API.upload.toCloudinary(_artworkFile, artSign, pct => {
-        setProgress(62 + Math.round(pct * 0.18), `Uploading artwork… ${pct}%`);
+      const artSign = await API.upload.signImage();
+      const artRes  = await API.upload.toCloudinary(_artworkFile, artSign, pct => {
+        setProgress(62 + Math.round(pct * 0.13), `Uploading artwork… ${pct}%`);
       });
       artworkUrl = artRes.secure_url;
     } else if (_artworkUrl) {
-      artworkUrl = _artworkUrl; // base64 fallback
+      artworkUrl = _artworkUrl;
     }
 
-    // ── Step 4: Save metadata to backend ─────────────────────
-    setProgress(82, 'Saving song metadata…');
+    // Step 4: Save all data to localStorage, then open PayChangu checkout
+    setProgress(78, 'Opening payment…');
     const cu = DB.Users.current();
-    await API.songs.create({
-      ...data,
-      audioUrl,
-      artworkUrl,
-      duration: audioDur,
+    const finalData = { ...data, audioUrl, artworkUrl, duration: audioDur };
+    localStorage.setItem('_pendingPaychanguUpload', JSON.stringify(finalData));
+
+    const returnBase = window.location.origin + window.location.pathname;
+
+    PaychanguCheckout({
+      public_key:   'pub-test-w8Zu6ifqPUOWrk30m9bMKvarGK2wJrP8',
+      tx_ref:       data.txref,
+      amount:       5000,
+      currency:     'MWK',
+      callback_url: returnBase + '?payment=success&tx_ref=' + data.txref,
+      return_url:   returnBase + '?payment=success&tx_ref=' + data.txref,
+      customer: {
+        email:      cu.email      || 'artist@duodrop.com',
+        first_name: (cu.name || 'Artist').split(' ')[0],
+        last_name:  (cu.name || '').split(' ').slice(1).join(' ') || 'Duodrop',
+      },
+      customization: {
+        title:       'DUODROP Upload Fee',
+        description: `MK 5,000 upload fee for "${data.title}"`,
+      },
+      onclose: () => {
+        // User closed popup without paying
+        showToast('Payment was not completed. Your files are ready — try again when you\'re ready.', 'warning');
+        submitBtn.disabled = false;
+        progressEl.style.display = 'none';
+      }
     });
 
-    setProgress(100, 'Done! Your song is under review.');
-    await new Promise(r => setTimeout(r, 800));
-
-    _resetUploadForm();
-    showToast(`"${data.title}" submitted! It will go live after admin review.`, 'success');
-    showPage('dashboard');
+    // Execution pauses here — PayChangu takes over.
+    // The page will redirect to ?payment=success on completion.
 
   } catch (err) {
     console.error('Upload error:', err);
     showToast('Upload failed: ' + err.message, 'error');
-  } finally {
     submitBtn.disabled = false;
     progressEl.style.display = 'none';
   }
 }
 
+/* ── Reset form ──────────────────────────────────────────────── */
 function _resetUploadForm() {
   document.getElementById('upload-form').reset();
   _audioFile   = null;
@@ -271,12 +324,9 @@ function _resetUploadForm() {
   _artworkUrl  = '';
   document.getElementById('audio-fd-content').innerHTML =
     '<div class="fd-icon"><i data-lucide="music"></i></div><div class="fd-label">Drop audio here or <span>click to browse</span></div><div class="fd-hint">MP3, WAV, FLAC, AAC — max 50 MB</div>';
-  
+
   const preview = document.getElementById('audio-preview');
-  if (preview) {
-    preview.style.display = 'none';
-    preview.src = '';
-  }
+  if (preview) { preview.style.display = 'none'; preview.src = ''; }
 
   document.getElementById('art-preview-inner').innerHTML =
     '<div class="fd-icon"><i data-lucide="image"></i></div><div class="fd-label">Click to upload artwork</div><div class="fd-hint">JPG or PNG — min 500×500px</div>';
@@ -285,7 +335,7 @@ function _resetUploadForm() {
   if (window.lucide) lucide.createIcons();
 }
 
-// ── Field error helpers ───────────────────────────────────────
+/* ── Field error helpers ─────────────────────────────────────── */
 function showFieldError(id, msg) {
   const el = document.getElementById(id);
   if (el) { el.textContent = '⚠ ' + msg; el.className = 'fe show'; }
