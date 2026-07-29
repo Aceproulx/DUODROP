@@ -500,3 +500,24 @@ function _drawWave() {
 
 // Make seekTo work from NP overlay too
 const _origSeekTo = typeof seekTo === 'function' ? seekTo : null;
+
+
+// Added snippet
+// Waveform & Comment Marker Enhancements
+function renderCommentMarkers(comments, trackDuration) {
+  const progressBar = document.querySelector('.player-progress-bar');
+  if (!progressBar) return;
+  
+  // Clear old markers
+  document.querySelectorAll('.comment-marker').forEach(m => m.remove());
+
+  comments.forEach(comment => {
+    const percentage = (comment.timestamp / trackDuration) * 100;
+    const marker = document.createElement('div');
+    marker.className = 'comment-marker';
+    marker.style.left = `${percentage}%`;
+    marker.title = `${comment.user}: "${comment.text}" at ${formatTime(comment.timestamp)}`;
+    marker.onclick = () => seekToTime(comment.timestamp);
+    progressBar.appendChild(marker);
+  });
+}

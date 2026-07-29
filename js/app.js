@@ -889,3 +889,23 @@ window.addEventListener('DOMContentLoaded', async () => {
   // Re-initialize icons after dynamic content loads
   if (window.lucide) lucide.createIcons();
 });
+
+
+// Added snippet
+// Direct Tip & Royalty Distribution
+const DuodropMonetization = {
+  sendTip: async (artistId, amount) => {
+    console.log(`Processing tip of $${amount} for artist ${artistId}`);
+    // Integrate payment gateway (Stripe/PayPal) call here
+    alert(`Thank you for supporting this artist with $${amount}!`);
+  },
+
+  renderRoyaltySplits: (collaborators) => {
+    return collaborators.map(c => `
+      <div class="split-badge">
+        <span>${c.name} (${c.role})</span>
+        <strong>${c.share}%</strong>
+      </div>
+    `).join('');
+  }
+};

@@ -4927,3 +4927,69 @@ a:hover {
   overflow: hidden;
 }
 
+
+
+/* Added snippet */
+/* DUODROP RESPONSIVE ENGINE UPDATE: Mobile-first adaptations for all screen sizes */
+
+/* 1. Safe Area Padding for Notch Phones (iOS/Android) */
+body {
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+  -webkit-tap-highlight-color: transparent; /* Removes blue tap box on mobile */
+  touch-action: manipulation;
+}
+
+/* 2. Fluid Typography (Scales automatically between phone & desktop) */
+h1 { font-size: clamp(1.5rem, 4vw + 1rem, 2.5rem); }
+h2 { font-size: clamp(1.25rem, 3vw + 0.8rem, 2rem); }
+p, span, button { font-size: clamp(0.9rem, 1.5vw + 0.5rem, 1.1rem); }
+
+/* 3. Touch-Friendly Interactive Targets */
+button, 0a, .player-control-btn, .song-item {
+  min-height: 44px;
+  min-width: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 4. Responsive Grid Layouts for Track Feeds */
+.track-grid, .artist-grid, .playlist-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 12px;
+  padding: 10px;
+}
+
+/* 5. Mobile Screens (Smartphones under 768px) */
+@media screen and (max-width: 768px) {
+  /* Stack sidebars into collapsible/bottom navigation */
+  .app-sidebar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 60px;
+    z-index: 1000;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-around;
+    background: rgba(18, 18, 18, 0.95);
+    backdrop-filter: blur(10px);
+  }
+
+  /* Make main music content scrollable without hidden overflow */
+  .main-content {
+    margin-bottom: 120px; /* Space for bottom nav + fixed music player */
+    padding: 12px;
+  }
+
+  /* Expand track grid cards on smaller screens */
+  .track-grid {
+    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+    gap: 8px;
+  }
+}
