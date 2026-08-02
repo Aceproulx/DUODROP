@@ -16,7 +16,6 @@ function showPage(name) {
   if (nav) nav.classList.add('active');
 
   _currentPage = name;
-  localStorage.setItem('duodrop_current_page', name);
   closeSidebar();
 
   const refreshers = {
@@ -477,13 +476,22 @@ function toggleLikeCurrent() {
   if (window._currentSong) toggleLikeSong(window._currentSong.id);
 }
 
-function openComments(songId) {
+async function openComments(songId) {
   const song = DB.Songs.find(songId);
-  const comments = DB.Comments.get(songId);
   window._commentSongId = songId;
   document.getElementById('comment-modal-title').textContent = `💬 ${song?.title || 'Comments'}`;
-  renderComments(comments);
   openModal('modal-comment');
+  
+  const el = document.getElementById('comments-list');
+  el.innerHTML = '<div class="loader" style="margin:20px auto; border-color:var(--text-dim); border-bottom-color:var(--accent);"></div><p class="dim" style="text-align:center;">Loading comments...</p>';
+  
+  try {
+    const res = await API.songs.comments(songId);
+    renderComments(res.comments || []);
+  } catch (err) {
+    el.innerHTML = `<p class="dim" style="padding:12px; color:var(--danger);">Failed to load comments.</p>`;
+    showToast('Failed to load comments', 'error');
+  }
 }
 
 function renderComments(comments) {
@@ -501,23 +509,46 @@ function renderComments(comments) {
     </div>`).join('');
 }
 
-function postComment() {
+async function postComment() {
   const cu = DB.Users.current();
   if (!cu) { openAuthModal(); return; }
   const input = document.getElementById('comment-input');
+  const btn = document.querySelector('.comment-row button');
   const text = input.value.trim();
+  
   if (!text || text.length < 1) { showToast('Comment cannot be empty', 'error'); return; }
   if (text.length > 500) { showToast('Comment too long (max 500 chars)', 'error'); return; }
-  DB.Comments.add(window._commentSongId, cu.id, text);
-  input.value = '';
-  renderComments(DB.Comments.get(window._commentSongId));
+  
+  const originalBtnText = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = 'Posting...';
+  
+  try {
+    await API.songs.comment(window._commentSongId, text);
+    input.value = '';
+    
+    // Refresh comments instantly
+    const res = await API.songs.comments(window._commentSongId);
+    renderComments(res.comments || []);
+  } catch (err) {
+    showToast(err.message || 'Failed to post comment', 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = originalBtnText;
+  }
 }
 
-function deleteComment(commentId) {
+async function deleteComment(commentId) {
   const cu = DB.Users.current();
   if (!cu) return;
-  DB.Comments.delete(window._commentSongId, commentId, cu.id);
-  renderComments(DB.Comments.get(window._commentSongId));
+  
+  try {
+    await API.songs.deleteComment(window._commentSongId, commentId);
+    const res = await API.songs.comments(window._commentSongId);
+    renderComments(res.comments || []);
+  } catch (err) {
+    showToast(err.message || 'Failed to delete comment', 'error');
+  }
 }
 
 function shareCurrentSong() {
@@ -882,11 +913,10 @@ async function loadServerData() {
     DB.save();
     updateUserUI();
     // Re-render current page with fresh data
-    const savedPage = localStorage.getItem('duodrop_current_page') || 'discover';
-    if (savedPage === 'discover' && typeof renderDiscover === 'function') {
+    if (_currentPage === 'discover' && typeof renderDiscover === 'function') {
       renderDiscover();
     } else {
-      showPage(savedPage);
+      showPage(_currentPage);
     }
   } catch (err) {
     console.warn('Server data load failed — using local data:', err.message);
@@ -900,8 +930,7 @@ window.addEventListener('DOMContentLoaded', async () => {
   // Initialize Lucide icons
   if (window.lucide) lucide.createIcons();
   updateUserUI();
-  const savedPage = localStorage.getItem('duodrop_current_page') || 'discover';
-  showPage(savedPage);
+  showPage('discover');
   // Load fresh data from server in background
   await loadServerData();
   // Re-initialize icons after dynamic content loads
