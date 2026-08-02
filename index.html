@@ -6,6 +6,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>DUODROP — Music for Malawi &amp; Beyond</title>
 
+<!-- Google Fonts: Outfit -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
 <link rel="stylesheet" href="css/main.css">
 <link rel="stylesheet" href="css/player.css">
 <!-- Lucide Icons -->
@@ -277,10 +282,17 @@
             </div>
 
             <div class="up-fields">
-              <div class="fg">
-                <label class="up-label">Song Title <span class="req">*</span></label>
-                <input type="text" id="u-title" class="up-input" placeholder="What's your song called?">
-                <div class="fe" id="err-u-title"></div>
+              <div class="up-row2">
+                <div class="fg">
+                  <label class="up-label">Artist Name <span class="req">*</span></label>
+                  <input type="text" id="u-artist" class="up-input" placeholder="Who is the main artist?">
+                  <div class="fe" id="err-u-artist"></div>
+                </div>
+                <div class="fg">
+                  <label class="up-label">Song Title <span class="req">*</span></label>
+                  <input type="text" id="u-title" class="up-input" placeholder="What's your song called?">
+                  <div class="fe" id="err-u-title"></div>
+                </div>
               </div>
 
               <div class="up-row2">
@@ -883,15 +895,23 @@
       <button class="modal-close" onclick="closeModal('modal-upload-guidelines')"><i data-lucide="x"></i></button>
     </div>
     <div class="modal-body">
-      <ul class="check-list" style="margin-bottom: 24px;">
-        <li><i data-lucide="check-circle" style="color:#10b981; width:16px;"></i> Audio must be your original work</li>
-        <li><i data-lucide="check-circle" style="color:#10b981; width:16px;"></i> File size: max 50 MB per song</li>
-        <li><i data-lucide="check-circle" style="color:#10b981; width:16px;"></i> Formats: MP3, WAV, FLAC, AAC</li>
-        <li><i data-lucide="check-circle" style="color:#10b981; width:16px;"></i> Artwork: min 500×500 pixels</li>
-        <li><i data-lucide="check-circle" style="color:#10b981; width:16px;"></i> Clear, professional audio quality</li>
-        <li><i data-lucide="x-circle" style="color:var(--danger, #ff4d4f); width:16px;"></i> No copyrighted material</li>
-        <li><i data-lucide="x-circle" style="color:var(--danger, #ff4d4f); width:16px;"></i> No plagiarism or covers without licence</li>
-      </ul>
+      <div id="modal-monetized-rules" style="display: none;">
+        <ul class="check-list" style="margin-bottom: 24px;">
+          <li><i data-lucide="check-circle" style="color:#10b981; width:16px;"></i> You own the full rights to this track (no uncleared beats)</li>
+          <li><i data-lucide="check-circle" style="color:#10b981; width:16px;"></i> Studio-quality mix and master required</li>
+          <li><i data-lucide="check-circle" style="color:#10b981; width:16px;"></i> Clear, high-quality cover art (min 1000x1000px)</li>
+          <li><i data-lucide="check-circle" style="color:#10b981; width:16px;"></i> You agree to the MK 5,000 publishing fee</li>
+          <li><i data-lucide="x-circle" style="color:var(--danger, #ff4d4f); width:16px;"></i> Covers, remixes, and uncleared samples are strictly prohibited</li>
+          <li><i data-lucide="shield-alert" style="color:#f59e0b; width:16px;"></i> Content moderators will review the upload to verify these requirements</li>
+        </ul>
+      </div>
+
+      <div id="modal-free-rules" style="margin-bottom: 24px;">
+        <div style="background: rgba(245, 158, 11, 0.1); border-left: 3px solid #f59e0b; padding: 14px 16px; border-radius: 4px;">
+          <p style="color: #f59e0b; font-size: 14px; font-weight: 500; margin: 0 0 6px 0;"><i data-lucide="alert-circle" style="width:16px; height:16px; vertical-align:-3px; margin-right:4px;"></i> Not subject to monetization</p>
+          <p style="color: var(--text-mid); font-size: 13px; margin: 0; line-height: 1.5;">You have selected <strong>Free Upload</strong>. This track will be available for everyone to stream at no cost and will not generate revenue.</p>
+        </div>
+      </div>
       <p class="dim" style="font-size:13px; margin-bottom:16px;">By clicking the button below, you agree to our Terms of Service and confirm you hold all rights to this content.</p>
       <!-- Button label is set dynamically by onUploadTypeChange() -->
       <button class="btn btn-primary btn-block" id="guidelines-confirm-btn" onclick="agreeAndUpload()">

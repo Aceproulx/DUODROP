@@ -66,7 +66,7 @@ router.get('/:id', async (req, res) => {
 router.post('/', requireAuth, async (req, res) => {
   try {
     const uid = req.user.localId;
-    const { title, genre, desc, tags, type, price, txref, amount, audioUrl, artworkUrl, duration } = req.body;
+    const { artist, title, genre, desc, tags, type, price, txref, amount, audioUrl, artworkUrl, duration } = req.body;
 
     if (!title || !genre || !audioUrl) {
       return res.status(400).json({ error: 'title, genre, and audioUrl are required' });
@@ -121,7 +121,7 @@ router.post('/', requireAuth, async (req, res) => {
       artwork:    artworkUrl || '',
       duration:   duration || '0:00',
       artistId:   uid,
-      artist:     userProfile?.username || userProfile?.name || 'Unknown',
+      artist:     artist || userProfile?.username || userProfile?.name || 'Unknown',
       plays:      0,
       downloads:  0,
       likes:      0,

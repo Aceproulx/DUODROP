@@ -65,13 +65,16 @@ function showToast(msg, type = 'info') {
 
 // ── Modals ────────────────────────────────────────────────────
 function openModal(id) { document.getElementById(id).classList.add('open'); }
-function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+function closeModal(id) { 
+  const el = document.getElementById(id);
+  if (el) { el.classList.remove('open'); el.style.display = ''; }
+}
 
 document.querySelectorAll('.modal-overlay').forEach(m => {
-  m.addEventListener('click', e => { if (e.target === m) m.classList.remove('open'); });
+  m.addEventListener('click', e => { if (e.target === m) { m.classList.remove('open'); m.style.display = ''; } });
 });
 document.addEventListener('keydown', e => {
-  if (e.key === 'Escape') document.querySelectorAll('.modal-overlay.open').forEach(m => m.classList.remove('open'));
+  if (e.key === 'Escape') document.querySelectorAll('.modal-overlay.open').forEach(m => { m.classList.remove('open'); m.style.display = ''; });
 });
 
 // ── CAPTCHA (Cloudflare Turnstile) ─────────────────────────

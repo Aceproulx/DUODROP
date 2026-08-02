@@ -88,6 +88,12 @@ function _syncUploadTypeUI() {
   if (gLabel) gLabel.textContent = isFree ? 'Agree & Publish' : 'Proceed to payment with PayChangu';
   if (gIcon)  gIcon.setAttribute('data-lucide', isFree ? 'upload-cloud' : 'credit-card');
 
+  // ── Guidelines modal content toggle ───────────────────────────
+  const mFreeRules = document.getElementById('modal-free-rules');
+  const mMonRules  = document.getElementById('modal-monetized-rules');
+  if (mFreeRules) mFreeRules.style.display = isFree ? 'block' : 'none';
+  if (mMonRules)  mMonRules.style.display  = isFree ? 'none' : 'block';
+
   if (window.lucide) lucide.createIcons();
 }
 
@@ -178,6 +184,22 @@ function handleAudioFile(input) {
   clearFieldError('err-u-audio');
   _audioFile = file;
 
+  // Auto-fill Title and Artist from filename
+  const fileName = file.name.replace(/\.[^/.]+$/, ""); // strip extension
+  const titleField = document.getElementById('u-title');
+  const artistField = document.getElementById('u-artist');
+
+  if (fileName.includes('-')) {
+    const parts = fileName.split('-');
+    const parsedArtist = parts[0].trim();
+    const parsedTitle = parts.slice(1).join('-').trim(); // in case of multiple hyphens
+
+    if (artistField && !artistField.value) artistField.value = parsedArtist;
+    if (titleField && !titleField.value) titleField.value = parsedTitle;
+  } else {
+    if (titleField && !titleField.value) titleField.value = fileName;
+  }
+
   const label = document.getElementById('audio-fd-content');
   label.innerHTML = `<div class="fd-icon"><i data-lucide="check-circle" style="color:#10b981;"></i></div><div class="fd-label">${escHtml(file.name)}</div><div class="fd-hint">${(file.size/1024/1024).toFixed(2)} MB</div>
   <button class="btn btn-sm btn-danger" style="margin-top:10px; position:relative; z-index:10;" onclick="removeAudioFile(event)">Remove</button>`;
@@ -243,10 +265,11 @@ function submitUpload(e) {
   if (!cu) { openAuthModal(); showToast('Sign in to upload music', 'error'); return; }
 
   if (cu.role !== 'artist') {
-    document.getElementById('modal-become-artist').style.display = 'flex';
+    openModal('modal-become-artist');
     return;
   }
 
+  const artist = document.getElementById('u-artist').value.trim();
   const title = document.getElementById('u-title').value.trim();
   const genre = document.getElementById('u-genre').value;
   const desc  = document.getElementById('u-desc').value.trim();
@@ -254,10 +277,12 @@ function submitUpload(e) {
   const type  = document.getElementById('u-type').value;
   const price = parseFloat(document.getElementById('u-price').value || 0);
 
-  // Validate required metadata fields only
-  if (!title)  { showFieldError('err-u-title', 'Song title is required'); return; }
-  if (!genre)  { showFieldError('err-u-genre', 'Please select a genre'); return; }
-  if (!desc)   { showFieldError('err-u-desc',  'Please add a description'); return; }
+  let hasErr = false;
+  if (!artist) { showFieldError('err-u-artist', 'Artist name is required'); hasErr = true; } else { clearFieldError('err-u-artist'); }
+  if (!title)  { showFieldError('err-u-title', 'Song title is required'); hasErr = true; } else { clearFieldError('err-u-title'); }
+  if (!genre)  { showFieldError('err-u-genre', 'Please select a genre'); hasErr = true; } else { clearFieldError('err-u-genre'); }
+  if (!desc)   { showFieldError('err-u-desc',  'Please add a description'); hasErr = true; } else { clearFieldError('err-u-desc'); }
+  if (hasErr) return;
 
   // File validation
   if (!_audioFile) { showFieldError('err-u-audio', 'Please upload your audio file'); return; }
@@ -273,12 +298,12 @@ function submitUpload(e) {
 
   // Store data and show guidelines modal
   window._pendingUploadData = {
-    title, genre, desc, tags, type, price, txref,
+    artist, title, genre, desc, tags, type, price, txref,
     uploadType,
     amount: uploadType === 'monetized' ? 5000 : 0,
     artistId: cu.id,
   };
-  document.getElementById('modal-upload-guidelines').style.display = 'flex';
+  openModal('modal-upload-guidelines');
 }
 
 window.agreeAndUpload = function() {
