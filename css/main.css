@@ -1215,14 +1215,54 @@ a:hover {
   }
 }
 
-.badge-prem { 
-  font-size: 10px; 
-  background: var(--gold); 
-  color: #000; 
-  padding: 1px 5px; 
-  border-radius: 8px; 
-  font-weight: 700; 
-  vertical-align: middle; 
+.badge-prem {
+  font-size: 10px;
+  background: var(--gold);
+  color: #000;
+  padding: 1px 5px;
+  border-radius: 8px;
+  font-weight: 700;
+  vertical-align: middle;
+}
+
+/* Monetized / Free song badges */
+.badge-monetized,
+.badge-free {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 8px;
+  vertical-align: middle;
+  line-height: 1;
+  white-space: nowrap;
+}
+.badge-monetized [data-lucide],
+.badge-free [data-lucide] { width: 10px; height: 10px; }
+
+.badge-monetized {
+  background: linear-gradient(135deg, rgba(245,158,11,.22), rgba(251,191,36,.12));
+  color: #f59e0b;
+  border: 1px solid rgba(245,158,11,.3);
+}
+.badge-free {
+  background: rgba(34,197,94,.12);
+  color: #22c55e;
+  border: 1px solid rgba(34,197,94,.25);
+}
+
+/* Badge in song card (on artwork thumbnail) */
+.sc-upload-badge {
+  position: absolute;
+  bottom: 8px;
+  left: 8px;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  background: rgba(0,0,0,.55);
+  border-radius: 6px;
+  padding: 2px 6px;
 }
 
 
@@ -1760,17 +1800,17 @@ a:hover {
 .up-fee-badge {
   display: flex;
   align-items: center;
-  gap: 12px;
-  background: linear-gradient(135deg, #CE1126 0%, #8b0a18 100%);
-  border-radius: 14px;
-  padding: 14px 20px;
-  color: #fff;
+  gap: 10px;
+  background: var(--card2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 10px 16px;
+  color: var(--text-mid);
   flex-shrink: 0;
-  box-shadow: 0 8px 24px rgba(206,17,38,.35);
+  font-size: 13px;
 }
-.up-fee-badge [data-lucide] { width: 28px; height: 28px; opacity: .9; }
-.up-fee-badge strong { display: block; font-size: 20px; font-weight: 800; line-height: 1; }
-.up-fee-badge span   { font-size: 11px; opacity: .75; margin-top: 2px; display: block; }
+.up-fee-badge [data-lucide] { width: 16px; height: 16px; color: var(--accent); flex-shrink: 0; }
+.up-fee-badge strong { color: var(--text); font-weight: 700; }
 
 /* Steps */
 .up-steps {
@@ -1823,6 +1863,135 @@ a:hover {
   max-width: 80px;
   border-radius: 2px;
 }
+
+/* ── Upload Type Selector ─────────────────────────────────── */
+.up-type-selector {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 28px;
+}
+@media (max-width: 600px) {
+  .up-type-selector { grid-template-columns: 1fr; }
+}
+
+.up-type-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 18px 20px;
+  border-radius: 16px;
+  border: 2px solid var(--border);
+  background: var(--card);
+  cursor: pointer;
+  transition: border-color .25s, background .25s, box-shadow .25s, transform .15s;
+  position: relative;
+  user-select: none;
+}
+.up-type-card:hover {
+  border-color: var(--text-dim);
+  transform: translateY(-2px);
+}
+.up-type-card.selected {
+  border-color: var(--accent);
+  background: rgba(206,17,38,.06);
+  box-shadow: 0 0 0 4px rgba(206,17,38,.12), 0 8px 24px rgba(206,17,38,.18);
+}
+.up-type-card.selected-monetized {
+  border-color: #f59e0b;
+  background: rgba(245,158,11,.06);
+  box-shadow: 0 0 0 4px rgba(245,158,11,.12), 0 8px 24px rgba(245,158,11,.18);
+}
+
+.up-type-card input[type="radio"] {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.up-type-card-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background .25s;
+}
+.up-type-card-icon [data-lucide] { width: 22px; height: 22px; }
+
+.up-type-card.selected     .up-type-card-icon { background: rgba(206,17,38,.18); color: var(--accent); }
+.up-type-card.selected-monetized .up-type-card-icon { background: rgba(245,158,11,.18); color: #f59e0b; }
+
+.up-type-card:not(.selected):not(.selected-monetized) .up-type-card-icon {
+  background: var(--card2);
+  color: var(--text-dim);
+}
+
+.up-type-card-body { flex: 1; }
+.up-type-card-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.up-type-card-check {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid var(--border);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background .2s, border-color .2s;
+  margin-left: auto;
+}
+.up-type-card.selected .up-type-card-check {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+.up-type-card.selected-monetized .up-type-card-check {
+  background: #f59e0b;
+  border-color: #f59e0b;
+}
+.up-type-card-check::after {
+  content: '';
+  display: block;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #fff;
+  opacity: 0;
+  transition: opacity .2s;
+}
+.up-type-card.selected .up-type-card-check::after,
+.up-type-card.selected-monetized .up-type-card-check::after { opacity: 1; }
+
+.up-type-card-desc {
+  font-size: 12px;
+  color: var(--text-dim);
+  line-height: 1.5;
+}
+.up-type-fee-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 20px;
+  margin-top: 8px;
+}
+.up-type-fee-pill.free     { background: rgba(34,197,94,.15); color: #22c55e; }
+.up-type-fee-pill.paid     { background: rgba(245,158,11,.15); color: #f59e0b; }
+.up-type-fee-pill [data-lucide] { width: 12px; height: 12px; }
 
 /* Grid layout */
 .up-grid {

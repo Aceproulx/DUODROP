@@ -12,6 +12,7 @@
 const router = require('express').Router();
 const { dbGet, dbSet, dbPush, dbUpdate, dbDelete } = require('../config/firebase');
 const { requireAuth, optionalAuth } = require('../middleware/auth');
+const { verifyPaychanguTransaction } = require('../utils/paychangu');
 
 // ── List all approved songs ───────────────────────────────────
 router.get('/', async (req, res) => {
@@ -71,6 +72,38 @@ router.post('/', requireAuth, async (req, res) => {
       return res.status(400).json({ error: 'title, genre, and audioUrl are required' });
     }
 
+    // ── Upload type enforcement ───────────────────────────────
+    // 'monetized' = artist paid via PayChangu; 'free' = no payment required.
+    // We normalise to exactly these two values — any unknown value defaults to 'free'.
+    const uploadType = req.body.uploadType === 'monetized' ? 'monetized' : 'free';
+
+    if (uploadType === 'monetized') {
+      // A payment reference is mandatory for monetized uploads.
+      if (!txref) {
+        return res.status(402).json({
+          error: 'A payment reference (tx_ref) is required for monetized uploads.',
+        });
+      }
+      // Re-verify the payment server-side — the frontend already verified it, but we
+      // guard against forged requests that skip the PayChangu popup entirely.
+      try {
+        const verifyResult = await verifyPaychanguTransaction(txref);
+        if (verifyResult.status !== 'success') {
+          return res.status(402).json({
+            error: 'Payment could not be verified. Please contact support if you were charged.',
+          });
+        }
+      } catch (verifyErr) {
+        console.error('[songs/create] PayChangu re-verify failed:', verifyErr.message);
+        return res.status(402).json({
+          error: 'Payment verification service is unavailable. Please try again shortly.',
+        });
+      }
+    }
+    // For free uploads: strip any stray txref so a free song is never associated
+    // with a payment reference, preventing any future confusion.
+    const safeTxref = uploadType === 'monetized' ? (txref || '') : '';
+
     const userProfile = await dbGet(`users/${uid}`, req.idToken);
 
     const song = {
@@ -79,9 +112,11 @@ router.post('/', requireAuth, async (req, res) => {
       desc:       desc || '',
       tags:       Array.isArray(tags) ? tags : (tags ? tags.split(',').map(t => t.trim()).filter(Boolean) : []),
       type:       type || 'free',
+      uploadType, // 'free' | 'monetized'
+      monetized:  uploadType === 'monetized', // boolean convenience flag
       price:      parseFloat(price) || 0,
-      txref:      txref || '',
-      amountPaid: parseFloat(amount) || 0,
+      txref:      safeTxref,
+      amountPaid: uploadType === 'monetized' ? (parseFloat(amount) || 0) : 0,
       audioUrl,
       artwork:    artworkUrl || '',
       duration:   duration || '0:00',

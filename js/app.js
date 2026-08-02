@@ -544,6 +544,13 @@ function downloadCurrentSong() {
 }
 
 // ── Song card/row builders ────────────────────────────────────
+function _uploadTypeBadge(song) {
+  if (song.uploadType === 'monetized' || song.monetized) {
+    return `<span class="badge-monetized"><i data-lucide="circle-dollar-sign"></i> Monetized</span>`;
+  }
+  return `<span class="badge-free"><i data-lucide="music"></i> Free</span>`;
+}
+
 function songCard(song) {
   const artist = DB.Users.find(song.artistId);
   const cu = DB.Users.current();
@@ -552,23 +559,26 @@ function songCard(song) {
 
   return `<div class="song-card" onclick="playSong('${song.id}')">
     <div class="sc-art" style="background:${color};">
-      ${song.artwork ? `<img src="${song.artwork}" alt="">` : `<div class="sc-art-emoji">🎵</div>`}
-      <div class="sc-overlay">▶</div>
-      ${song.type === 'premium' ? '<div class="sc-premium">⭐</div>' : ''}
+      ${song.artwork ? `<img src="${song.artwork}" alt="">` : `<div class="sc-art-emoji"><i data-lucide="music"></i></div>`}
+      <div class="sc-overlay"><i data-lucide="play"></i></div>
+      ${song.type === 'premium' ? '<div class="sc-premium"><i data-lucide="star" style="width:10px;height:10px;"></i> Premium</div>' : ''}
+      <div class="sc-upload-badge">${_uploadTypeBadge(song)}</div>
     </div>
     <div class="sc-info">
       <div class="sc-title" title="${song.title}">${song.title}</div>
       <div class="sc-artist" onclick="event.stopPropagation();viewArtist('${song.artistId}')">${artist?.name || '?'}</div>
       <div class="sc-meta">
-        <span>▶ ${fmtNum(song.plays || 0)}</span>
-        <span>❤ ${song.likes || 0}</span>
+        <span><i data-lucide="play" style="width:10px;height:10px;"></i> ${fmtNum(song.plays || 0)}</span>
+        <span><i data-lucide="heart" style="width:10px;height:10px;"></i> ${song.likes || 0}</span>
         <span class="sc-genre">${song.genre}</span>
       </div>
     </div>
     <div class="sc-actions">
-      <button class="icon-btn" data-like-id="${song.id}" onclick="event.stopPropagation();toggleLikeSong('${song.id}',this)">${liked ? '❤️' : '🤍'}</button>
-      <button class="icon-btn" onclick="event.stopPropagation();openComments('${song.id}')">💬</button>
-      <button class="icon-btn" onclick="event.stopPropagation();shareSong('${song.id}')">🔗</button>
+      <button class="icon-btn" data-like-id="${song.id}" onclick="event.stopPropagation();toggleLikeSong('${song.id}',this)" title="Like">
+        <i data-lucide="heart" style="${liked ? 'color:var(--accent);' : ''}"></i>
+      </button>
+      <button class="icon-btn" onclick="event.stopPropagation();openComments('${song.id}')" title="Comments"><i data-lucide="message-circle"></i></button>
+      <button class="icon-btn" onclick="event.stopPropagation();shareSong('${song.id}')" title="Share"><i data-lucide="share-2"></i></button>
     </div>
   </div>`;
 }
@@ -580,21 +590,24 @@ function songRow(song, rank) {
 
   return `<div class="song-row" onclick="playSong('${song.id}')">
     ${rank ? `<div class="sr-rank">${rank}</div>` : ''}
-    <div class="sr-art" style="background:${genreColor(song.genre)};">${song.artwork ? `<img src="${song.artwork}">` : '🎵'}</div>
+    <div class="sr-art" style="background:${genreColor(song.genre)};">${song.artwork ? `<img src="${song.artwork}">` : '<i data-lucide="music" style="width:18px;height:18px;"></i>'}</div>
     <div class="sr-info">
-      <div class="sr-title">${song.title} ${song.type === 'premium' ? '<span class="badge-prem">⭐ Premium</span>' : ''}</div>
+      <div class="sr-title">${song.title} ${song.type === 'premium' ? '<span class="badge-prem"><i data-lucide="star" style="width:8px;height:8px;"></i> Premium</span>' : ''} ${_uploadTypeBadge(song)}</div>
       <div class="sr-artist" onclick="event.stopPropagation();viewArtist('${song.artistId}')">${artist?.name || '?'} · ${song.genre}</div>
     </div>
-    <div class="sr-plays">▶ ${fmtNum(song.plays || 0)}</div>
+    <div class="sr-plays"><i data-lucide="play" style="width:11px;height:11px;"></i> ${fmtNum(song.plays || 0)}</div>
     <div class="sr-dur">${song.duration || '—'}</div>
     <div class="sr-acts">
-      <button class="icon-btn" data-like-id="${song.id}" onclick="event.stopPropagation();toggleLikeSong('${song.id}',this)">${liked ? '❤️' : '🤍'}</button>
-      <button class="icon-btn" onclick="event.stopPropagation();openComments('${song.id}')">💬</button>
-      <button class="icon-btn" onclick="event.stopPropagation();shareSong('${song.id}')">🔗</button>
-      ${song.type === 'free' ? `<button class="icon-btn" onclick="event.stopPropagation();downloadCurrentSong()">⬇</button>` : ''}
+      <button class="icon-btn" data-like-id="${song.id}" onclick="event.stopPropagation();toggleLikeSong('${song.id}',this)" title="Like">
+        <i data-lucide="heart" style="${liked ? 'color:var(--accent);' : ''}"></i>
+      </button>
+      <button class="icon-btn" onclick="event.stopPropagation();openComments('${song.id}')" title="Comment"><i data-lucide="message-circle"></i></button>
+      <button class="icon-btn" onclick="event.stopPropagation();shareSong('${song.id}')" title="Share"><i data-lucide="share-2"></i></button>
+      ${song.type === 'free' ? `<button class="icon-btn" onclick="event.stopPropagation();downloadCurrentSong()" title="Download"><i data-lucide="download"></i></button>` : ''}
     </div>
   </div>`;
 }
+
 
 function artistCard(artist) {
   const songs = DB.Songs.byArtist(artist.id);
@@ -651,6 +664,7 @@ function showLibTab(btn, tab) {
       ${fe.shares.length ? fe.shares.map(s => `<div class="hist-row"><span>+MK ${s.amount}</span><span>${s.note}</span><span class="dim">${timeAgo(s.ts)}</span></div>`).join('') : '<p class="dim">No share earnings yet</p>'}
     </div>`;
   }
+  if (window.lucide) lucide.createIcons();
 }
 
 function copyRefLink() {
@@ -699,6 +713,7 @@ function renderMyProfile() {
     </div>` : ''}`;
 
   document.getElementById('my-profile-content').innerHTML = html;
+  if (window.lucide) lucide.createIcons();
 }
 
 function openProfileEdit() {

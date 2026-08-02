@@ -1,22 +1,101 @@
 /* ================================================================
-   DUODROP — Upload Module
-   Payment is REQUIRED via PayChangu before any song is saved.
-   Flow:
-     1. Artist fills form & selects files → clicks "Upload"
+   DUODROP — Upload Module (v2)
+   Two upload types are supported:
+
+   ── FREE UPLOAD ─────────────────────────────────────────────────
+     1. Artist selects "Free Upload", fills form → clicks "Upload"
+     2. Guidelines modal → "Agree & Publish"
+     3. Files upload to Cloudinary
+     4. Song saved immediately — no payment step
+     5. Song tagged as uploadType: 'free' in the database
+
+   ── MONETIZED UPLOAD ────────────────────────────────────────────
+     1. Artist selects "Monetized Upload", fills form → clicks "Upload"
      2. Guidelines modal → "Proceed to payment with PayChangu"
      3. Files upload to Cloudinary (so URLs are ready)
      4. PaychanguCheckout() popup opens
      5. On success PayChangu redirects to ?payment=success&tx_ref=...
      6. We verify the tx_ref with PayChangu API (server-side)
      7. If verified, song is saved — otherwise, upload is rejected
+     8. Song tagged as uploadType: 'monetized' in the database
+
+   CRITICAL: A free upload NEVER triggers PayChangu — not on first
+   attempt, not on retries, not on redirects.
    ================================================================ */
 
 let _audioFile   = null;
 let _artworkFile = null;
 let _artworkUrl  = '';
+let _currentUploadType = 'free'; // 'free' | 'monetized'
+
+/* ── Upload type selector ──────────────────────────────────────── */
+window.selectUploadType = function(type) {
+  _currentUploadType = (type === 'monetized') ? 'monetized' : 'free';
+
+  // Update radio inputs
+  const freeRadio = document.getElementById('utype-free');
+  const monRadio  = document.getElementById('utype-monetized');
+  if (freeRadio) freeRadio.checked = (_currentUploadType === 'free');
+  if (monRadio)  monRadio.checked  = (_currentUploadType === 'monetized');
+
+  // Update card visual state
+  const freeCard = document.getElementById('utc-free');
+  const monCard  = document.getElementById('utc-monetized');
+  if (freeCard) {
+    freeCard.classList.toggle('selected', _currentUploadType === 'free');
+    freeCard.classList.remove('selected-monetized');
+  }
+  if (monCard) {
+    monCard.classList.toggle('selected-monetized', _currentUploadType === 'monetized');
+    monCard.classList.remove('selected');
+  }
+
+  _syncUploadTypeUI();
+};
+
+function _syncUploadTypeUI() {
+  const isFree = _currentUploadType === 'free';
+
+  // ── Content Type field ────────────────────────────────────────
+  // For Free uploads: lock to 'free' and hide the selector entirely.
+  // For Monetized uploads: show it so the artist can pick free/premium.
+  const typeGroup  = document.getElementById('u-type-group');
+  const typeSelect = document.getElementById('u-type');
+  if (typeGroup)  typeGroup.style.display  = isFree ? 'none' : '';
+  if (typeSelect && isFree) typeSelect.value = 'free';
+
+  // ── Submit button ─────────────────────────────────────────────
+  const submitLabel = document.getElementById('up-submit-label');
+  const submitIcon  = document.getElementById('up-submit-icon');
+  if (submitLabel) submitLabel.textContent = isFree ? 'Upload for Free' : 'Upload & Pay with PayChangu';
+  if (submitIcon)  submitIcon.setAttribute('data-lucide', isFree ? 'upload-cloud' : 'credit-card');
+
+  // ── Step 3 label ──────────────────────────────────────────────
+  const step3 = document.getElementById('step3-label');
+  if (step3) step3.textContent = isFree ? 'Publish' : 'Pay & Publish';
+
+  // ── CTA footer hint ───────────────────────────────────────────
+  const footerText = document.getElementById('up-footer-text');
+  if (footerText) {
+    footerText.innerHTML = isFree
+      ? 'Your track will be reviewed by our team before going live.'
+      : 'Secure payment powered by <strong>PayChangu</strong> — MK 5,000 upload fee';
+  }
+
+  // ── Guidelines modal confirm button ───────────────────────────
+  const gLabel = document.getElementById('guidelines-confirm-label');
+  const gIcon  = document.getElementById('guidelines-confirm-icon');
+  if (gLabel) gLabel.textContent = isFree ? 'Agree & Publish' : 'Proceed to payment with PayChangu';
+  if (gIcon)  gIcon.setAttribute('data-lucide', isFree ? 'upload-cloud' : 'credit-card');
+
+  if (window.lucide) lucide.createIcons();
+}
 
 /* ── On page load: handle PayChangu return callback ───────────── */
 document.addEventListener('DOMContentLoaded', async () => {
+  // Initialise UI to match default selection (free)
+  _syncUploadTypeUI();
+
   const urlParams = new URLSearchParams(window.location.search);
 
   if (urlParams.get('payment') === 'success') {
@@ -34,6 +113,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
       try {
         const pendingData = JSON.parse(pendingJson);
+
+        // ── SAFETY GUARD: free uploads must never enter this branch ──
+        if (pendingData.uploadType === 'free') {
+          throw new Error('Upload type mismatch: a free upload reached the payment callback. Aborting.');
+        }
 
         // ── Verify payment with server before saving ──────────
         if (barFill)  barFill.style.width = '88%';
@@ -60,7 +144,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         console.error('Payment verification / save error:', err);
         localStorage.removeItem('_pendingPaychanguUpload');
         window.history.replaceState({}, document.title, window.location.pathname);
-        showToast('❌ ' + err.message, 'error');
+        showToast(err.message, 'error');
       } finally {
         if (progressEl) progressEl.style.display = 'none';
       }
@@ -170,9 +254,6 @@ function submitUpload(e) {
   const type  = document.getElementById('u-type').value;
   const price = parseFloat(document.getElementById('u-price').value || 0);
 
-  // Generate a unique tx_ref for this upload
-  const txref = 'DUODROP-' + Date.now() + '-' + Math.floor(Math.random() * 9999);
-
   // Validate required metadata fields only
   if (!title)  { showFieldError('err-u-title', 'Song title is required'); return; }
   if (!genre)  { showFieldError('err-u-genre', 'Please select a genre'); return; }
@@ -182,16 +263,35 @@ function submitUpload(e) {
   if (!_audioFile) { showFieldError('err-u-audio', 'Please upload your audio file'); return; }
   if (!_artworkFile && !_artworkUrl) { showFieldError('err-u-art', 'Please upload cover artwork'); return; }
 
+  // Read upload type from the selector (normalise to safe values)
+  const uploadType = _currentUploadType === 'monetized' ? 'monetized' : 'free';
+
+  // Only generate a txref for monetized uploads
+  const txref = uploadType === 'monetized'
+    ? 'DUODROP-' + Date.now() + '-' + Math.floor(Math.random() * 9999)
+    : '';
+
   // Store data and show guidelines modal
-  window._pendingUploadData = { title, genre, desc, tags, type, price, txref, amount: 5000, artistId: cu.id };
+  window._pendingUploadData = {
+    title, genre, desc, tags, type, price, txref,
+    uploadType,
+    amount: uploadType === 'monetized' ? 5000 : 0,
+    artistId: cu.id,
+  };
   document.getElementById('modal-upload-guidelines').style.display = 'flex';
 }
 
 window.agreeAndUpload = function() {
   closeModal('modal-upload-guidelines');
   if (window._pendingUploadData) {
-    doUpload(window._pendingUploadData);
+    const data = window._pendingUploadData;
     window._pendingUploadData = null;
+
+    if (data.uploadType === 'monetized') {
+      doMonetizedUpload(data);
+    } else {
+      doFreeUpload(data);
+    }
   }
 };
 
@@ -230,8 +330,81 @@ window.removeAudioFile = function(e) {
   if (window.lucide) lucide.createIcons();
 };
 
-/* ── Core upload pipeline ─────────────────────────────────────── */
-async function doUpload(data) {
+/* ── Free upload pipeline (no payment) ───────────────────────── */
+async function doFreeUpload(data) {
+  const progressEl = document.getElementById('upload-progress');
+  const barFill    = document.getElementById('upload-bar-fill');
+  const progText   = document.getElementById('upload-prog-text');
+  const submitBtn  = document.querySelector('#upload-form button[type="submit"]');
+
+  submitBtn.disabled = true;
+  progressEl.style.display = 'block';
+
+  const setProgress = (pct, msg) => {
+    barFill.style.width = pct + '%';
+    progText.textContent = msg;
+  };
+
+  try {
+    // Step 1: Sign audio upload
+    setProgress(10, 'Preparing secure upload…');
+    const audioSign = await API.upload.signAudio();
+
+    // Step 2: Upload audio to Cloudinary
+    setProgress(15, 'Uploading audio file…');
+    const audioRes = await API.upload.toCloudinary(_audioFile, audioSign, pct => {
+      setProgress(15 + Math.round(pct * 0.5), `Uploading audio… ${pct}%`);
+    });
+    const audioUrl = audioRes.secure_url;
+    const audioDur = audioRes.duration
+      ? `${Math.floor(audioRes.duration / 60)}:${String(Math.floor(audioRes.duration % 60)).padStart(2,'0')}`
+      : '0:00';
+
+    // Step 3: Upload artwork to Cloudinary
+    let artworkUrl = '';
+    if (_artworkFile) {
+      setProgress(68, 'Uploading cover artwork…');
+      const artSign = await API.upload.signImage();
+      const artRes  = await API.upload.toCloudinary(_artworkFile, artSign, pct => {
+        setProgress(68 + Math.round(pct * 0.15), `Uploading artwork… ${pct}%`);
+      });
+      artworkUrl = artRes.secure_url;
+    } else if (_artworkUrl) {
+      artworkUrl = _artworkUrl;
+    }
+
+    // Step 4: Save the song directly (no payment required)
+    setProgress(88, 'Saving your song…');
+    const finalData = {
+      ...data,
+      audioUrl,
+      artworkUrl,
+      duration: audioDur,
+      uploadType: 'free',   // explicit — server will enforce this
+      txref: '',            // no transaction reference for free uploads
+      amount: 0,
+    };
+
+    await API.songs.create(finalData);
+
+    setProgress(100, 'Done!');
+    _resetUploadForm();
+
+    window.history.replaceState({}, document.title, window.location.pathname);
+    showToast(`"${data.title}" submitted! It will go live after admin review.`, 'success');
+    if (typeof showPage === 'function') showPage('dashboard');
+
+  } catch (err) {
+    console.error('Free upload error:', err);
+    showToast('Upload failed: ' + err.message, 'error');
+  } finally {
+    submitBtn.disabled = false;
+    progressEl.style.display = 'none';
+  }
+}
+
+/* ── Monetized upload pipeline (PayChangu required) ──────────── */
+async function doMonetizedUpload(data) {
   const progressEl = document.getElementById('upload-progress');
   const barFill    = document.getElementById('upload-bar-fill');
   const progText   = document.getElementById('upload-prog-text');
@@ -276,7 +449,13 @@ async function doUpload(data) {
     // Step 4: Save all data to localStorage, then open PayChangu checkout
     setProgress(78, 'Opening payment…');
     const cu = DB.Users.current();
-    const finalData = { ...data, audioUrl, artworkUrl, duration: audioDur };
+    const finalData = {
+      ...data,
+      audioUrl,
+      artworkUrl,
+      duration: audioDur,
+      uploadType: 'monetized', // explicit tag
+    };
     localStorage.setItem('_pendingPaychanguUpload', JSON.stringify(finalData));
 
     const returnBase = window.location.origin + window.location.pathname;
@@ -309,7 +488,7 @@ async function doUpload(data) {
     // The page will redirect to ?payment=success on completion.
 
   } catch (err) {
-    console.error('Upload error:', err);
+    console.error('Monetized upload error:', err);
     showToast('Upload failed: ' + err.message, 'error');
     submitBtn.disabled = false;
     progressEl.style.display = 'none';
@@ -332,6 +511,9 @@ function _resetUploadForm() {
     '<div class="fd-icon"><i data-lucide="image"></i></div><div class="fd-label">Click to upload artwork</div><div class="fd-hint">JPG or PNG — min 500×500px</div>';
   ['audio-drop','art-drop'].forEach(id => document.getElementById(id)?.classList.remove('has-file'));
   document.getElementById('zod-status').innerHTML = '';
+
+  // Reset type selector to free
+  selectUploadType('free');
   if (window.lucide) lucide.createIcons();
 }
 

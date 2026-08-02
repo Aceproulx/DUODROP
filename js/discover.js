@@ -41,6 +41,8 @@ function renderDiscover() {
   // New releases
   const newEl = document.getElementById('new-releases');
   if (newEl) newEl.innerHTML = recent.map((s, i) => songRow(s, i+1)).join('');
+
+  if (window.lucide) lucide.createIcons();
 }
 
 function animateCount(id, target) {
@@ -91,6 +93,7 @@ function renderTrendingList() {
   el.innerHTML = songs.length
     ? songs.map((s, i) => songRow(s, i + 1)).join('')
     : '<div class="empty-state"><div class="es-icon">🔥</div><p>No songs in this genre yet</p></div>';
+  if (window.lucide) lucide.createIcons();
 }
 
 // ── Playlists ─────────────────────────────────────────────────

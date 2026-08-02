@@ -197,13 +197,35 @@
           <h1><i data-lucide="upload-cloud"></i> Upload Your Music</h1>
           <p>Share your sound with Malawi and the world. Every upload is reviewed by our team before going live.</p>
         </div>
-        <div class="up-fee-badge">
-          <i data-lucide="credit-card"></i>
-          <div>
-            <strong>MK 5,000</strong>
-            <span>per song upload</span>
+      <!-- Upload Type Selector -->
+      <div class="up-type-selector" id="up-type-selector" role="radiogroup" aria-label="Upload type">
+
+        <label class="up-type-card selected" id="utc-free" onclick="selectUploadType('free')">
+          <input type="radio" name="upload-type" value="free" id="utype-free" checked>
+          <div class="up-type-card-icon"><i data-lucide="music"></i></div>
+          <div class="up-type-card-body">
+            <div class="up-type-card-title">
+              Free Upload
+              <span class="up-type-card-check"></span>
+            </div>
+            <div class="up-type-card-desc">Publish your track at no cost. Fans can stream it freely.</div>
+            <span class="up-type-fee-pill free"><i data-lucide="check-circle"></i> No upload fee</span>
           </div>
-        </div>
+        </label>
+
+        <label class="up-type-card" id="utc-monetized" onclick="selectUploadType('monetized')">
+          <input type="radio" name="upload-type" value="monetized" id="utype-monetized">
+          <div class="up-type-card-icon"><i data-lucide="circle-dollar-sign"></i></div>
+          <div class="up-type-card-body">
+            <div class="up-type-card-title">
+              Monetized Upload
+              <span class="up-type-card-check"></span>
+            </div>
+            <div class="up-type-card-desc">Pay the MK 5,000 upload fee via PayChangu to list your track as a monetized release.</div>
+            <span class="up-type-fee-pill paid"><i data-lucide="credit-card"></i> MK 5,000 via PayChangu</span>
+          </div>
+        </label>
+
       </div>
 
       <!-- Step Indicator -->
@@ -220,7 +242,7 @@
         <div class="up-step-line"></div>
         <div class="up-step" id="step-ind-3">
           <div class="up-step-dot">3</div>
-          <span>Pay &amp; Publish</span>
+          <span id="step3-label">Publish</span>
         </div>
       </div>
 
@@ -263,11 +285,11 @@
                   </select>
                   <div class="fe" id="err-u-genre"></div>
                 </div>
-                <div class="fg">
+                <div class="fg" id="u-type-group">
                   <label class="up-label">Content Type</label>
                   <select id="u-type" class="up-input">
-                    <option value="free">🆓 Free — everyone can stream</option>
-                    <option value="premium">⭐ Premium — paid download</option>
+                    <option value="free">Free — everyone can stream</option>
+                    <option value="premium">Premium — paid download</option>
                   </select>
                 </div>
               </div>
@@ -332,12 +354,9 @@
           </div><!-- end up-right-col -->
         </div><!-- end up-grid -->
 
-        <!-- Hidden fields for JS logic -->
+        <!-- Hidden field for price (used by monetized flow) -->
         <input type="hidden" id="u-price" value="0">
         <input type="hidden" id="u-amount" value="5000">
-        <input type="radio" name="u-paymethod" value="paychangu" checked style="display:none;">
-        <input type="checkbox" id="u-amount-cb" checked style="display:none;">
-        <input type="checkbox" id="u-agree" checked style="display:none;">
 
         <!-- Progress Bar -->
         <div id="upload-progress" class="up-progress" style="display:none;">
@@ -347,13 +366,13 @@
 
         <!-- CTA Footer -->
         <div class="up-footer">
-          <div class="up-footer-info">
+          <div class="up-footer-info" id="up-footer-info">
             <i data-lucide="shield-check"></i>
-            <span>Secure payment powered by <strong>PayChangu</strong> — MK 5,000 upload fee</span>
+            <span id="up-footer-text">Your track will be reviewed by our team before going live.</span>
           </div>
           <button type="submit" class="up-submit-btn" id="up-submit-btn">
-            <i data-lucide="upload-cloud"></i>
-            Upload &amp; Pay with PayChangu
+            <i data-lucide="upload-cloud" id="up-submit-icon"></i>
+            <span id="up-submit-label">Upload for Free</span>
           </button>
         </div>
 
@@ -841,11 +860,10 @@
 
 </div>
 
-<!-- Upload Guidelines Modal -->
 <div class="modal-overlay" id="modal-upload-guidelines">
   <div class="modal modal-md">
     <div class="modal-hdr">
-      <h3><i data-lucide="clipboard-list"></i> Upload Guidelines & Terms</h3>
+      <h3><i data-lucide="clipboard-list"></i> Upload Guidelines &amp; Terms</h3>
       <button class="modal-close" onclick="closeModal('modal-upload-guidelines')"><i data-lucide="x"></i></button>
     </div>
     <div class="modal-body">
@@ -858,8 +876,12 @@
         <li><i data-lucide="x-circle" style="color:var(--danger, #ff4d4f); width:16px;"></i> No copyrighted material</li>
         <li><i data-lucide="x-circle" style="color:var(--danger, #ff4d4f); width:16px;"></i> No plagiarism or covers without licence</li>
       </ul>
-      <p class="dim" style="font-size:13px; margin-bottom:16px;">By clicking Agree & Upload, you agree to our Terms of Service and confirm you hold all rights to this content.</p>
-      <button class="btn btn-primary btn-block" onclick="agreeAndUpload()"><i data-lucide="credit-card"></i> Proceed to payment with PayChangu</button>
+      <p class="dim" style="font-size:13px; margin-bottom:16px;">By clicking the button below, you agree to our Terms of Service and confirm you hold all rights to this content.</p>
+      <!-- Button label is set dynamically by onUploadTypeChange() -->
+      <button class="btn btn-primary btn-block" id="guidelines-confirm-btn" onclick="agreeAndUpload()">
+        <i data-lucide="upload-cloud" id="guidelines-confirm-icon"></i>
+        <span id="guidelines-confirm-label">Agree &amp; Publish</span>
+      </button>
     </div>
   </div>
 </div>
