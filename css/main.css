@@ -1777,6 +1777,40 @@ a:hover {
    ══════════════════════════════════════════════════════════════ */
 
 /* Hero */
+/* ── Upload page: live video background ─────────────────────── */
+.up-bg-video {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  z-index: 0;
+  pointer-events: none;
+  filter: saturate(0.65) brightness(0.55);
+}
+
+/* Layered overlay: dark gradient from bottom, slight vignette */
+.up-bg-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background:
+    linear-gradient(
+      to bottom,
+      rgba(10,10,15,.55) 0%,
+      rgba(10,10,15,.30) 40%,
+      rgba(10,10,15,.72) 100%
+    ),
+    radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,.50) 100%);
+}
+
+/* Pause video when the page is not active to save resources */
+#page-upload:not(.active) .up-bg-video {
+  display: none;
+}
+
 .up-hero {
   display: flex;
   align-items: center;
@@ -1882,8 +1916,10 @@ a:hover {
   gap: 10px;
   padding: 18px 20px;
   border-radius: 16px;
-  border: 2px solid var(--border);
-  background: var(--card);
+  border: 2px solid rgba(255,255,255,.1);
+  background: rgba(18, 18, 26, 0.60);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
   cursor: pointer;
   transition: border-color .25s, background .25s, box-shadow .25s, transform .15s;
   position: relative;
@@ -1997,8 +2033,8 @@ a:hover {
 .up-grid {
   display: grid;
   grid-template-columns: 1fr 400px;
-  gap: 24px;
-  margin-bottom: 24px;
+  gap: 32px;
+  margin-bottom: 32px;
   align-items: start;
 }
 @media (max-width: 960px) {
@@ -2007,8 +2043,10 @@ a:hover {
 
 /* Cards */
 .up-card {
-  background: var(--card);
-  border: 1px solid var(--border);
+  background: rgba(18, 18, 26, 0.72);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border: 1px solid rgba(255,255,255,.08);
   border-radius: 18px;
   overflow: hidden;
 }
@@ -2016,9 +2054,9 @@ a:hover {
 .up-card-hdr {
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 20px 24px;
-  border-bottom: 1px solid var(--border);
+  gap: 16px;
+  padding: 24px 28px;
+  border-bottom: 1px solid rgba(255,255,255,.05);
   background: var(--card2);
 }
 .up-card-hdr h2 {
@@ -2048,15 +2086,15 @@ a:hover {
 
 /* Fields inside card */
 .up-fields {
-  padding: 24px;
+  padding: 28px;
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 24px;
 }
 .up-row2 {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 14px;
+  gap: 20px;
 }
 @media (max-width: 640px) {
   .up-row2 { grid-template-columns: 1fr; }
@@ -2064,12 +2102,13 @@ a:hover {
 
 .up-label {
   display: block;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--text-mid);
+  font-size: 11px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.6);
   text-transform: uppercase;
-  letter-spacing: .6px;
-  margin-bottom: 7px;
+  letter-spacing: 1.2px;
+  margin-bottom: 8px;
+  padding-left: 4px;
 }
 .up-label-hint {
   font-size: 11px;
@@ -2082,25 +2121,32 @@ a:hover {
 
 .up-input {
   width: 100%;
-  background: var(--card2);
-  border: 1.5px solid var(--border);
-  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
   color: var(--text);
-  font-size: 14px;
-  padding: 11px 14px;
-  transition: border-color .2s, box-shadow .2s;
+  font-size: 15px;
+  padding: 14px 16px;
+  transition: all .25s ease;
   font-family: inherit;
   outline: none;
   appearance: none;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+.up-input:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.2);
 }
 .up-input:focus {
+  background: rgba(255, 255, 255, 0.08);
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(206,17,38,.15);
+  box-shadow: 0 0 0 4px rgba(206,17,38,.2);
 }
-.up-input::placeholder { color: var(--text-dim); }
+.up-input::placeholder { color: rgba(255,255,255,0.3); }
 .up-textarea {
   resize: vertical;
-  min-height: 100px;
+  min-height: 120px;
   line-height: 1.6;
 }
 
@@ -2108,33 +2154,36 @@ a:hover {
 .up-right-col {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 32px;
 }
 
 /* Drop zones */
 .up-drop {
   margin: 0 24px 24px;
-  border: 2px dashed var(--border);
-  border-radius: 14px;
-  padding: 32px 20px;
+  border: 2px dashed rgba(255, 255, 255, 0.15);
+  border-radius: 16px;
+  padding: 36px 20px;
   text-align: center;
   cursor: pointer;
-  transition: border-color .25s, background .25s, transform .15s;
+  transition: all .25s ease;
   position: relative;
   overflow: hidden;
+  background: rgba(255, 255, 255, 0.02);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
 .up-drop:hover {
-  border-color: var(--accent);
-  background: rgba(206,17,38,.04);
-  transform: translateY(-1px);
+  border-color: rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.05);
+  transform: translateY(-2px);
 }
 .up-drop.dragover {
   border-color: var(--accent);
-  background: rgba(206,17,38,.08);
+  background: rgba(206,17,38,.1);
 }
 .up-drop.has-file {
   border-color: var(--green-lt);
-  background: rgba(34,197,94,.04);
+  background: rgba(34,197,94,.06);
 }
 
 .up-drop-inner {
@@ -2180,8 +2229,10 @@ a:hover {
 
 /* Progress */
 .up-progress {
-  background: var(--card);
-  border: 1px solid var(--border);
+  background: rgba(18, 18, 26, 0.72);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border: 1px solid rgba(255,255,255,.08);
   border-radius: 14px;
   padding: 20px 24px;
   margin-bottom: 20px;
@@ -2213,8 +2264,10 @@ a:hover {
   justify-content: space-between;
   gap: 16px;
   flex-wrap: wrap;
-  background: var(--card);
-  border: 1px solid var(--border);
+  background: rgba(18, 18, 26, 0.72);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border: 1px solid rgba(255,255,255,.08);
   border-radius: 16px;
   padding: 20px 28px;
 }
