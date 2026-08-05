@@ -11,18 +11,17 @@ function renderCharts() {
 
   const allSongs = DB.Songs.all().filter(s => s.status !== 'rejected' && s.status !== 'banned');
 
-  // Period filter (simulated via play-count tiers)
+  // Period score from the real per-day play log (playsDaily), not a simulation.
   function getSongScore(song) {
-    const plays = song.plays || 0;
-    if (_chartPeriod === 'weekly')   return Math.floor(plays * 0.08 + Math.random() * 20);
-    if (_chartPeriod === 'monthly')  return Math.floor(plays * 0.35 + Math.random() * 50);
-    return plays;
+    if (_chartPeriod === 'weekly')  return DB.Songs.playsInPeriod(song.id, 'week');
+    if (_chartPeriod === 'monthly') return DB.Songs.playsInPeriod(song.id, 'month');
+    return song.plays || 0;
   }
 
   let songs = allSongs
     .filter(s => _chartGenre === 'all' || s.genre === _chartGenre)
     .map(s => ({ ...s, _score: getSongScore(s) }))
-    .sort((a, b) => b._score - a._score);
+    .sort((a, b) => (b._score - a._score) || ((b.plays || 0) - (a.plays || 0)) || a.title.localeCompare(b.title));
 
   // Top artist spotlight — artist with most plays overall
   const topArtist = DB.Artists.topArtists(1)[0];

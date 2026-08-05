@@ -498,8 +498,20 @@ function updateLikeBtn(songId) {
   const cu = DB.Users.current();
   const liked = cu ? DB.Likes.isLiked(cu.id, songId) : false;
   document.querySelectorAll(`[data-like-id="${songId}"]`).forEach(b => b.textContent = liked ? '❤️' : '🤍');
+  const song = DB.Songs.find(songId);
+  if (song) {
+    document.querySelectorAll(`[data-song-likes-num="${songId}"]`).forEach(el => { el.textContent = song.likes || 0; });
+  }
   const pbLike = document.getElementById('pb-like-btn');
   if (pbLike && window._currentSong?.id === songId) pbLike.textContent = liked ? '❤️' : '🤍';
+}
+
+function cacheComments(songId, comments) {
+  DB.get().comments[songId] = comments || [];
+  const song = DB.Songs.find(songId);
+  if (song) song.commentCount = DB.get().comments[songId].length;
+  DB.save();
+  document.querySelectorAll(`[data-song-comments-num="${songId}"]`).forEach(el => { el.textContent = DB.get().comments[songId].length; });
 }
 
 function toggleLikeCurrent() {
@@ -518,6 +530,7 @@ async function openComments(songId) {
   try {
     const res = await API.songs.comments(songId);
     renderComments(res.comments || []);
+    cacheComments(songId, res.comments || []);
   } catch (err) {
     el.innerHTML = `<p class="dim" style="padding:12px; color:var(--danger);">Failed to load comments.</p>`;
     showToast('Failed to load comments', 'error');
@@ -574,6 +587,7 @@ async function postComment() {
     // Refresh comments instantly
     const res = await API.songs.comments(window._commentSongId);
     renderComments(res.comments || []);
+    cacheComments(window._commentSongId, res.comments || []);
   } catch (err) {
     showToast(err.message || 'Failed to post comment', 'error');
   } finally {
@@ -590,6 +604,7 @@ async function deleteComment(commentId) {
     await API.songs.deleteComment(window._commentSongId, commentId);
     const res = await API.songs.comments(window._commentSongId);
     renderComments(res.comments || []);
+    cacheComments(window._commentSongId, res.comments || []);
   } catch (err) {
     showToast(err.message || 'Failed to delete comment', 'error');
   }
@@ -745,6 +760,12 @@ function deleteOwnSong(songId) {
 }
 
 // ── Song card/row builders ────────────────────────────────────
+function songCommentCount(song) {
+  if (!song) return 0;
+  if (typeof song.commentCount === 'number') return song.commentCount;
+  return DB.Comments.get(song.id).length;
+}
+
 function _uploadTypeBadge(song) {
   if (song.uploadType === 'monetized' || song.monetized) {
     return `<span class="badge-monetized"><i data-lucide="circle-dollar-sign"></i> Monetized</span>`;
@@ -769,8 +790,9 @@ function songCard(song) {
       <div class="sc-title" title="${song.title}">${song.title}</div>
       <div class="sc-artist" onclick="event.stopPropagation();viewArtist('${song.artistId}')">${artist?.name || '?'}</div>
       <div class="sc-meta">
-        <span data-song-plays-num="${song.id}"><i data-lucide="play" style="width:10px;height:10px;"></i> ${fmtNum(song.plays || 0)}</span>
-        <span><i data-lucide="heart" style="width:10px;height:10px;"></i> ${song.likes || 0}</span>
+        <span><i data-lucide="play" style="width:10px;height:10px;"></i> <span data-song-plays-num="${song.id}">${fmtNum(song.plays || 0)}</span></span>
+        <span><i data-lucide="heart" style="width:10px;height:10px;"></i> <span data-song-likes-num="${song.id}">${song.likes || 0}</span></span>
+        <span><i data-lucide="message-circle" style="width:10px;height:10px;"></i> <span data-song-comments-num="${song.id}">${songCommentCount(song)}</span></span>
         <span class="sc-genre">${song.genre}</span>
       </div>
     </div>
@@ -798,7 +820,11 @@ function songRow(song, rank) {
       <div class="sr-title">${song.title} ${song.type === 'premium' ? '<span class="badge-prem"><i data-lucide="star" style="width:8px;height:8px;"></i> Premium</span>' : ''} ${_uploadTypeBadge(song)}</div>
       <div class="sr-artist" onclick="event.stopPropagation();viewArtist('${song.artistId}')">${artist?.name || '?'} · ${song.genre}</div>
     </div>
-    <div class="sr-plays" data-song-plays-num="${song.id}"><i data-lucide="play" style="width:11px;height:11px;"></i> ${fmtNum(song.plays || 0)}</div>
+    <div class="sr-stats">
+      <span class="sr-stat"><i data-lucide="play" style="width:11px;height:11px;"></i> <span data-song-plays-num="${song.id}">${fmtNum(song.plays || 0)}</span></span>
+      <span class="sr-stat"><i data-lucide="heart" style="width:11px;height:11px;"></i> <span data-song-likes-num="${song.id}">${song.likes || 0}</span></span>
+      <span class="sr-stat"><i data-lucide="message-circle" style="width:11px;height:11px;"></i> <span data-song-comments-num="${song.id}">${songCommentCount(song)}</span></span>
+    </div>
     <div class="sr-dur">${song.duration || '—'}</div>
     <div class="sr-acts">
       <button class="icon-btn" data-like-id="${song.id}" onclick="event.stopPropagation();toggleLikeSong('${song.id}',this)" title="Like">
@@ -1036,14 +1062,44 @@ async function loadServerData() {
     ]);
 
     if (songsRes.status === 'fulfilled' && songsRes.value.songs) {
-      // Merge server songs into local DB (server data wins)
+      // Mirror the server list into the local cache (server data wins).
       const serverSongs = songsRes.value.songs;
+      const serverIds = new Set(serverSongs.map(s => s.id));
       const localSongs = DB.get().songs;
+
+      // Drop local-only songs (stale demo/QA data) so counts stay real.
+      for (let i = localSongs.length - 1; i >= 0; i--) {
+        if (!serverIds.has(localSongs[i].id)) {
+          const stale = localSongs.splice(i, 1)[0];
+          delete DB.get().plays[stale.id];
+          delete DB.get().playsDaily[stale.id];
+          delete DB.get().comments[stale.id];
+          Object.keys(DB.get().likes).forEach(uid => {
+            const set = DB.get().likes[uid];
+            if (set) {
+              const li = set.indexOf(stale.id);
+              if (li >= 0) set.splice(li, 1);
+            }
+          });
+        }
+      }
+
       // Add new server songs not already cached
       serverSongs.forEach(ss => {
         const idx = localSongs.findIndex(ls => ls.id === ss.id);
         if (idx >= 0) Object.assign(localSongs[idx], ss);
         else localSongs.push(ss);
+
+        // Merge the real per-day play log from the server (keeps local guest
+        // plays and cross-device plays; the higher value wins per day).
+        if (ss.playsDaily && typeof ss.playsDaily === 'object') {
+          const localDaily = DB.get().playsDaily[ss.id] || (DB.get().playsDaily[ss.id] = {});
+          Object.entries(ss.playsDaily).forEach(([day, cnt]) => {
+            if (day && /^\d{4}-\d{2}-\d{2}$/.test(day)) {
+              localDaily[day] = Math.max(localDaily[day] || 0, Number(cnt) || 0);
+            }
+          });
+        }
       });
     }
 
@@ -1106,23 +1162,3 @@ window.addEventListener('DOMContentLoaded', async () => {
   // Re-initialize icons after dynamic content loads
   if (window.lucide) lucide.createIcons();
 });
-
-
-// Added snippet
-// Direct Tip & Royalty Distribution
-const DuodropMonetization = {
-  sendTip: async (artistId, amount) => {
-    console.log(`Processing tip of $${amount} for artist ${artistId}`);
-    // Integrate payment gateway (Stripe/PayPal) call here
-    alert(`Thank you for supporting this artist with $${amount}!`);
-  },
-
-  renderRoyaltySplits: (collaborators) => {
-    return collaborators.map(c => `
-      <div class="split-badge">
-        <span>${c.name} (${c.role})</span>
-        <strong>${c.share}%</strong>
-      </div>
-    `).join('');
-  }
-};

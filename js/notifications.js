@@ -101,19 +101,22 @@ function showNotifSettings() {
   if (window.lucide) lucide.createIcons();
 }
 
-// ── Seed some demo notifications for artists without any ──────
+// ── Welcome notification for artists with an empty center ──────
+// This never claims an event that didn't happen — real approval/like/
+// comment/follower/earnings notifications come from the code that
+// performs those actions.
 function _seedDemoNotifications() {
   const cu = DB.Users.current();
   if (!cu || cu.role !== 'artist') return;
   if (DB.Notifications.all(cu.id).length > 0) return;
 
-  const song = DB.Songs.byArtist(cu.id)[0];
-  if (song) {
-    DB.Notifications.add(cu.id, {
-      type: 'approvals',
-      title: 'Song approved',
-      body: `Your song "${song.title}" has been approved and is now live on DUODROP.`,
-      refId: song.id,
-    });
-  }
+  const liveSongs = DB.Songs.byArtist(cu.id).filter(s => s.status !== 'rejected' && s.status !== 'banned').length;
+  DB.Notifications.add(cu.id, {
+    type: 'approvals',
+    title: 'Welcome to DUODROP 🎉',
+    body: liveSongs > 0
+      ? `You have ${liveSongs} live song${liveSongs === 1 ? '' : 's'}. Approvals, likes, comments, followers and earnings updates will appear here.`
+      : 'Upload a song to start sharing your music. Approvals, likes, comments, followers and earnings updates will appear here.',
+    refId: '',
+  });
 }

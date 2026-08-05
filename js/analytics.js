@@ -134,7 +134,7 @@ function _sortedSongs(songs, history) {
     song: s,
     plays: s.plays || 0,
     likes: s.likes || 0,
-    comments: DB.Comments.get(s.id).length,
+    comments: (typeof s.commentCount === 'number' ? s.commentCount : DB.Comments.get(s.id).length),
     downloads: s.downloads || 0,
     earned: bySong[s.id] || 0,
   }));
@@ -691,23 +691,4 @@ function processWithdraw(maxAmount) {
   showToast(`Withdrawal of MK ${amount.toLocaleString()} requested via ${method}. Processing in 1-3 business days.`, 'success');
   renderEarnings();
   renderDashboard();
-}
-
-
-// Added snippet
-// Real-Time Analytics Geographic Data Engine
-function loadListenerMapData(analyticsData) {
-  const container = document.getElementById('analytics-map');
-  if (!container) return;
-
-  container.innerHTML = `
-    <div class="geo-analytics-summary">
-      <h4>Top Stream Regions</h4>
-      <ul>
-        ${analyticsData.locations.map(loc => `
-          <li>${loc.country}: <strong>${loc.streams.toLocaleString()} streams</strong></li>
-        `).join('')}
-      </ul>
-    </div>
-  `;
 }

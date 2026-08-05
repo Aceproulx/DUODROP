@@ -16,6 +16,34 @@ const { dbGet, dbSet, dbPush, dbUpdate, dbDelete } = require('../config/firebase
 const { requireAuth, optionalAuth } = require('../middleware/auth');
 const { verifyPaychanguTransaction } = require('../utils/paychangu');
 
+// Attach the real per-song comment count from the comments collection.
+async function attachCommentCounts(songs) {
+  if (!songs || !songs.length) return songs;
+  let raw = null;
+  try { raw = await dbGet('comments'); } catch (_) { /* ignore */ }
+  const counts = {};
+  if (raw) {
+    Object.entries(raw).forEach(([songId, list]) => {
+      counts[songId] = (list ? Object.keys(list).length : 0);
+    });
+  }
+  return songs.map(s => ({ ...s, commentCount: counts[s.id] || 0 }));
+}
+
+// Attach the real per-day play log (playsDaily/{songId}/{YYYY-MM-DD}).
+// The client uses this to build weekly/monthly charts from real data.
+async function attachPlaysDaily(songs) {
+  if (!songs || !songs.length) return songs;
+  let raw = null;
+  try { raw = await dbGet('playsDaily'); } catch (_) { /* ignore */ }
+  if (!raw) return songs;
+  return songs.map(s => ({ ...s, playsDaily: raw[s.id] || {} }));
+}
+
+function dayKey(d) {
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+
 // ── List all live songs (excludes only rejected/banned) ───────
 router.get('/', async (req, res) => {
   try {
@@ -27,7 +55,7 @@ router.get('/', async (req, res) => {
       .filter(s => s.status !== 'rejected' && s.status !== 'banned')
       .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
-    res.json({ songs });
+    res.json({ songs: await attachPlaysDaily(await attachCommentCounts(songs)) });
   } catch (err) {
     console.error('[songs/list]', err.message);
     res.status(500).json({ error: 'Failed to fetch songs' });
@@ -47,7 +75,7 @@ router.get('/trending', async (req, res) => {
       .sort((a, b) => (b.plays || 0) - (a.plays || 0))
       .slice(0, parseInt(limit));
 
-    res.json({ songs });
+    res.json({ songs: await attachPlaysDaily(await attachCommentCounts(songs)) });
   } catch (err) {
     res.status(500).json({ error: 'Failed to fetch trending songs' });
   }
@@ -58,7 +86,8 @@ router.get('/:id', async (req, res) => {
   try {
     const song = await dbGet(`songs/${req.params.id}`);
     if (!song) return res.status(404).json({ error: 'Song not found' });
-    res.json({ song: { ...song, id: req.params.id } });
+    const withDaily = (await attachPlaysDaily([{ ...song, id: req.params.id }]))[0];
+    res.json({ song: withDaily });
   } catch (err) {
     res.status(500).json({ error: 'Failed to fetch song' });
   }
@@ -173,6 +202,12 @@ router.post('/:id/play', optionalAuth, async (req, res) => {
       if (song) {
         const newPlays = (song.plays || 0) + 1;
         await dbUpdate(`songs/${songId}`, { plays: newPlays }, req.idToken);
+
+        // Record the play in the per-day log (real weekly/monthly charts)
+        const today = dayKey(new Date());
+        const dailyKey = `playsDaily/${songId}/${today}`;
+        const todayCount = await dbGet(dailyKey, req.idToken);
+        await dbSet(dailyKey, (todayCount || 0) + 1, req.idToken);
 
         // Credit artist earnings (MK 1 per play if >= 100 followers)
         const artistId = song.artistId;

@@ -142,13 +142,44 @@ const DB = (() => {
       s.plays = (s.plays || 0) + 1;
       get().plays[id] = s.plays;
       if (!get().playsDaily[id]) get().playsDaily[id] = {};
-      const now = new Date();
-      const dayKey = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
+      const dayKey = this._dayKey(new Date());
       get().playsDaily[id][dayKey] = (get().playsDaily[id][dayKey] || 0) + 1;
       ArtistEarnings.creditPlay(s.artistId, id);
       const cu = Users.current();
       if (cu) History.add(cu.id, id);
       save();
+    },
+
+    // Real plays in a period from the per-day play log (playsDaily).
+    // period: 'week' (last 7 days) | 'month' (current calendar month) | 'alltime'
+    playsInPeriod(id, period) {
+      if (period === 'alltime') return this.find(id)?.plays || 0;
+
+      const day = (get().playsDaily && get().playsDaily[id]) || {};
+      const now = new Date();
+      const keys = Object.keys(day).filter(k => /^\d{4}-\d{2}-\d{2}$/.test(k));
+
+      if (period === 'week') {
+        const start = new Date(now);
+        start.setDate(now.getDate() - 6);   // today + previous 6 days
+        const startKey = this._dayKey(start);
+        return keys
+          .filter(k => k >= startKey && k <= this._dayKey(now))
+          .reduce((sum, k) => sum + (day[k] || 0), 0);
+      }
+
+      if (period === 'month') {
+        const prefix = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
+        return keys
+          .filter(k => k.startsWith(prefix))
+          .reduce((sum, k) => sum + (day[k] || 0), 0);
+      }
+
+      return 0;
+    },
+
+    _dayKey(d) {
+      return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
     },
 
     trending(limit = 20, genre = '') {
@@ -422,7 +453,7 @@ const DB = (() => {
     total() {
       const songs   = Songs.all().length;
       const artists = get().users.filter(u => u.role === 'artist').length;
-      const plays   = Object.values(get().plays).reduce((a, b) => a + b, 0);
+      const plays   = get().songs.reduce((s, x) => s + (x.plays || 0), 0);
       const fans    = get().users.filter(u => u.role === 'fan').length;
       return { songs, artists, plays, fans, users: get().users.length };
     },
