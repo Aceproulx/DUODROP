@@ -1,20 +1,22 @@
 /* =================================================================
    DUODROP — Songs Routes
-   GET  /api/songs           — list approved songs (public)
+   GET  /api/songs           — list all live songs (public)
    GET  /api/songs/trending  — trending songs (public)
    GET  /api/songs/:id       — single song (public)
    POST /api/songs           — create song (auth required)
-   POST /api/songs/:id/play  — increment play count
-   POST /api/songs/:id/like  — toggle like (auth required)
+   POST /api/songs/:id/play     — increment play count
+   POST /api/songs/:id/download — increment download count
+   POST /api/songs/:id/like     — toggle like (auth required)
    GET  /api/songs/:id/comments — list comments
    POST /api/songs/:id/comments — post comment (auth required)
+   DELETE /api/songs/:id        — delete song (owner only, auth required)
    ================================================================= */
 const router = require('express').Router();
 const { dbGet, dbSet, dbPush, dbUpdate, dbDelete } = require('../config/firebase');
 const { requireAuth, optionalAuth } = require('../middleware/auth');
 const { verifyPaychanguTransaction } = require('../utils/paychangu');
 
-// ── List all approved songs ───────────────────────────────────
+// ── List all live songs (excludes only rejected/banned) ───────
 router.get('/', async (req, res) => {
   try {
     const raw = await dbGet('songs');
@@ -22,7 +24,7 @@ router.get('/', async (req, res) => {
 
     const songs = Object.entries(raw)
       .map(([id, s]) => ({ ...s, id }))
-      .filter(s => s.status === 'approved' || s.status === 'active')
+      .filter(s => s.status !== 'rejected' && s.status !== 'banned')
       .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
     res.json({ songs });
@@ -41,7 +43,7 @@ router.get('/trending', async (req, res) => {
 
     const songs = Object.entries(raw)
       .map(([id, s]) => ({ ...s, id }))
-      .filter(s => (s.status === 'approved' || s.status === 'active') && (!genre || s.genre === genre))
+      .filter(s => s.status !== 'rejected' && s.status !== 'banned' && (!genre || s.genre === genre))
       .sort((a, b) => (b.plays || 0) - (a.plays || 0))
       .slice(0, parseInt(limit));
 
@@ -66,7 +68,7 @@ router.get('/:id', async (req, res) => {
 router.post('/', requireAuth, async (req, res) => {
   try {
     const uid = req.user.localId;
-    const { artist, title, genre, desc, tags, type, price, txref, amount, audioUrl, artworkUrl, duration } = req.body;
+    const { artist, title, genre, desc, tags, type, price, txref, amount, audioUrl, artworkUrl, duration, lyrics } = req.body;
 
     if (!title || !genre || !audioUrl) {
       return res.status(400).json({ error: 'title, genre, and audioUrl are required' });
@@ -119,13 +121,16 @@ router.post('/', requireAuth, async (req, res) => {
       amountPaid: uploadType === 'monetized' ? (parseFloat(amount) || 0) : 0,
       audioUrl,
       artwork:    artworkUrl || '',
+      lyrics:     (typeof lyrics === 'string' ? lyrics.slice(0, 20000) : ''),
+      downloadable: req.body.downloadable !== false, // default true
       duration:   duration || '0:00',
       artistId:   uid,
       artist:     artist || userProfile?.username || userProfile?.name || 'Unknown',
       plays:      0,
       downloads:  0,
       likes:      0,
-      status:     'pending',  // admin must approve
+      status:     'active',   // live immediately; admin can verify or reject
+      verified:   false,       // becomes true when admin approves
       createdAt:  new Date().toISOString(),
     };
 
@@ -149,7 +154,7 @@ router.post('/', requireAuth, async (req, res) => {
 
     res.status(201).json({
       song:    { ...song, id: songId },
-      message: 'Song submitted! It will appear after admin approval.',
+      message: 'Song uploaded successfully! It is now live on the platform.',
     });
   } catch (err) {
     console.error('[songs/create]', err.message);
@@ -195,6 +200,47 @@ router.post('/:id/play', optionalAuth, async (req, res) => {
   } catch (err) {
     console.error('[songs/play]', err.message);
     res.status(500).json({ error: 'Failed to record play' });
+  }
+});
+
+// ── Record a download ─────────────────────────────────────────
+router.post('/:id/download', optionalAuth, async (req, res) => {
+  try {
+    const songId = req.params.id;
+    // Only persist if we have an auth token (Firebase rules require auth for writes)
+    if (req.idToken) {
+      const song = await dbGet(`songs/${songId}`, req.idToken);
+      if (song) {
+        const newDownloads = (song.downloads || 0) + 1;
+        await dbUpdate(`songs/${songId}`, { downloads: newDownloads }, req.idToken);
+        return res.json({ downloads: newDownloads });
+      }
+    }
+    res.json({ downloads: null }); // guest download — not persisted
+  } catch (err) {
+    console.error('[songs/download]', err.message);
+    res.status(500).json({ error: 'Failed to record download' });
+  }
+});
+
+// ── Delete song (owner only) ──────────────────────────────────
+router.delete('/:id', requireAuth, async (req, res) => {
+  try {
+    const uid  = req.user.localId;
+    const song = await dbGet(`songs/${req.params.id}`, req.idToken);
+    if (!song) return res.status(404).json({ error: 'Song not found' });
+    if (song.artistId !== uid) {
+      return res.status(403).json({ error: 'You can only delete your own songs' });
+    }
+
+    await dbDelete(`songs/${req.params.id}`, req.idToken);
+    // Best-effort cleanup: remove the song's comments
+    try { await dbDelete(`comments/${req.params.id}`, req.idToken); } catch (_) {}
+
+    res.json({ message: 'Song deleted successfully' });
+  } catch (err) {
+    console.error('[songs/delete]', err.message);
+    res.status(500).json({ error: 'Failed to delete song' });
   }
 });
 

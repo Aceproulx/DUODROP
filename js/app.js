@@ -251,9 +251,10 @@ window.handleAvatarClick = function () {
 function updateUserUI() {
   const user = DB.Users.current();
   if (user) {
+    const initials = user.username?.slice(0, 2).toUpperCase() || '?';
     const av = user.avatar
-      ? `<img src="${user.avatar}" alt="">`
-      : user.username.slice(0, 2).toUpperCase();
+      ? `<img src="${user.avatar}" alt="" onerror="this.parentElement.innerHTML='${initials}'">`
+      : initials;
     ['su-avatar', 'tb-avatar'].forEach(id => {
       const el = document.getElementById(id);
       if (el) el.innerHTML = av;
@@ -283,6 +284,8 @@ function updateUserUI() {
       heroBtn.onclick = () => openAuthModal('register');
     }
   }
+
+  if (typeof refreshNotifBadge === 'function') refreshNotifBadge();
 }
 
 // ── Global Search ─────────────────────────────────────────────
@@ -336,8 +339,9 @@ document.addEventListener('click', e => {
 function viewArtist(id) {
   const artist = DB.Users.find(id);
   if (!artist) return;
+  window._artistProfileId = id;
 
-  const songs = DB.Songs.byArtist(id).filter(s => s.status === 'approved').sort((a, b) => (b.plays || 0) - (a.plays || 0));
+  const songs = DB.Songs.byArtist(id).filter(s => s.status !== 'rejected' && s.status !== 'banned').sort((a, b) => (b.plays || 0) - (a.plays || 0));
   const followers = DB.Artists.followerCount(id);
   const cu = DB.Users.current();
   const isFollowing = cu ? DB.Follows.isFollowing(cu.id, id) : false;
@@ -407,6 +411,19 @@ async function toggleFollow(artistId, btn) {
     }
     DB.save();
 
+    // Notify the artist when someone follows them
+    if (isNow && artistId !== cu.id) {
+      DB.Notifications.add(artistId, {
+        type: 'followers',
+        title: 'New follower',
+        body: `${cu.username} started following you.`,
+        refId: artistId,
+        actorId: cu.id,
+        actorName: cu.username,
+      });
+      refreshNotifBadge();
+    }
+
     if (btn) {
       btn.disabled = false;
       btn.className = isNow ? 'btn btn-outline' : 'btn btn-primary';
@@ -455,6 +472,19 @@ async function toggleLikeSong(songId, btn) {
     if (song) song.likes = res.likes;
 
     DB.save();
+
+    // Notify the artist when someone likes their song
+    if (isNow && song && song.artistId !== cu.id) {
+      DB.Notifications.add(song.artistId, {
+        type: 'likes',
+        title: 'New like on your song',
+        body: `${cu.username} liked your song "${song.title}".`,
+        refId: song.id,
+        actorId: cu.id,
+        actorName: cu.username,
+      });
+      refreshNotifBadge();
+    }
 
     updateLikeBtn(songId);
     showToast(isNow ? 'Added to Liked Songs' : 'Removed from liked', isNow ? 'success' : 'info');
@@ -526,7 +556,21 @@ async function postComment() {
   try {
     await API.songs.comment(window._commentSongId, text);
     input.value = '';
-    
+
+    // Notify the artist when someone comments on their song
+    const song = DB.Songs.find(window._commentSongId);
+    if (song && song.artistId !== cu.id) {
+      DB.Notifications.add(song.artistId, {
+        type: 'comments',
+        title: 'New comment on your song',
+        body: `${cu.username} commented on "${song.title}": "${text.slice(0, 80)}"`,
+        refId: song.id,
+        actorId: cu.id,
+        actorName: cu.username,
+      });
+      refreshNotifBadge();
+    }
+
     // Refresh comments instantly
     const res = await API.songs.comments(window._commentSongId);
     renderComments(res.comments || []);
@@ -564,17 +608,140 @@ function shareSong(songId) {
 }
 
 function downloadCurrentSong() {
-  if (!window._currentSong) return;
+  if (window._currentSong) downloadSong(window._currentSong.id);
+}
+
+async function downloadSong(songId) {
+  const song = DB.Songs.find(songId);
+  if (!song) return;
+
   const cu = DB.Users.current();
   if (!cu) { openAuthModal(); showToast('Sign in to download', 'info'); return; }
-  const song = window._currentSong;
+
   if (song.type === 'premium' && song.price > 0) {
     showToast(`⭐ Premium song — MK ${song.price} required to download`, 'info');
-  } else {
-    showToast(`⬇ Downloading "${song.title}"…`, 'success');
-    song.downloads = (song.downloads || 0) + 1;
-    DB.save();
+    return;
   }
+
+  if (song.downloadable === false) { showToast('The artist has disabled downloads for this track', 'error'); return; }
+  if (!song.audioUrl) { showToast('This song has no audio file to download', 'error'); return; }
+
+  showToast(`⬇ Downloading "${song.title}"…`, 'info');
+
+  // Persist download count (server + local cache)
+  try { await API.songs.download(song.id); } catch (_) {}
+  song.downloads = (song.downloads || 0) + 1;
+  DB.save();
+
+  const filename = (song.title || 'song').replace(/[^a-z0-9]+/gi, '_') + '.mp3';
+  try {
+    const res = await fetch(song.audioUrl);
+    if (!res.ok) throw new Error('bad response');
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 4000);
+    showToast(`⬇ "${song.title}" downloaded`, 'success');
+  } catch (_) {
+    // CORS / network fallback — open the file so the user can save it
+    window.open(song.audioUrl, '_blank');
+  }
+}
+
+let _confirmCallback = null;
+let _confirmRequireWord = '';
+
+function openConfirm(options = {}) {
+  _confirmCallback = options.onConfirm || null;
+  _confirmRequireWord = String(options.requireWord || '');
+
+  const titleEl = document.getElementById('confirm-title');
+  if (titleEl) titleEl.innerHTML = `<i data-lucide="${options.icon || 'alert-triangle'}"></i> ${escHtml(options.title || 'Are you sure?')}`;
+
+  const msgEl = document.getElementById('confirm-message');
+  if (msgEl) msgEl.innerHTML = options.message || '';
+
+  const iconEl = document.getElementById('confirm-icon');
+  if (iconEl) iconEl.setAttribute('data-lucide', options.icon || 'alert-triangle');
+
+  const typeRow = document.getElementById('confirm-type-row');
+  const typeInput = document.getElementById('confirm-type-input');
+  if (typeRow && typeInput) {
+    if (_confirmRequireWord) {
+      typeRow.style.display = '';
+      typeInput.value = '';
+      typeInput.placeholder = `Type ${_confirmRequireWord.toUpperCase()} to confirm`;
+    } else {
+      typeRow.style.display = 'none';
+    }
+  }
+
+  const okBtn = document.getElementById('confirm-ok-btn');
+  if (okBtn) {
+    okBtn.innerHTML = `<i data-lucide="${options.confirmIcon || 'check'}"></i> ${escHtml(options.confirmText || 'Confirm')}`;
+    okBtn.className = 'btn btn-block ' + (options.variant || 'btn-danger');
+    okBtn.disabled = !!_confirmRequireWord;
+  }
+
+  openModal('modal-confirm');
+  if (window.lucide) lucide.createIcons();
+}
+
+function onConfirmTypeInput(value) {
+  const okBtn = document.getElementById('confirm-ok-btn');
+  if (okBtn) okBtn.disabled = value.trim().toUpperCase() !== _confirmRequireWord.toUpperCase();
+}
+
+function runConfirmCallback() {
+  closeModal('modal-confirm');
+  const cb = _confirmCallback;
+  _confirmCallback = null;
+  _confirmRequireWord = '';
+  if (typeof cb === 'function') cb();
+}
+
+function deleteOwnSong(songId) {
+  const cu = DB.Users.current();
+  const song = DB.Songs.find(songId);
+  if (!cu || !song || song.artistId !== cu.id) return;
+
+  openConfirm({
+    title: 'Delete Song',
+    icon: 'trash-2',
+    message: `Are you sure you want to permanently delete "<strong>${escHtml(song.title)}</strong>"?<br><span class="dim" style="font-size:13px;">This cannot be undone. The song and all its plays, likes and comments will be removed.</span>`,
+    confirmText: 'Delete Song',
+    confirmIcon: 'trash-2',
+    onConfirm: async () => {
+      try {
+        await API.songs.remove(songId);
+
+        // Clear player if the deleted song was playing
+        if (window._currentSong?.id === songId) {
+          window._currentSong = null;
+          audio.pause();
+          audio.src = '';
+        }
+
+        DB.Songs.remove(songId);
+        DB.save();
+        showToast(`"${song.title}" deleted`, 'success');
+
+        // Re-render the current view
+        if (_currentPage === 'artist-profile' && window._artistProfileId) {
+          viewArtist(window._artistProfileId);
+        } else {
+          showPage(_currentPage);
+        }
+      } catch (err) {
+        showToast(err.message || 'Failed to delete song', 'error');
+      }
+    },
+  });
 }
 
 // ── Song card/row builders ────────────────────────────────────
@@ -602,7 +769,7 @@ function songCard(song) {
       <div class="sc-title" title="${song.title}">${song.title}</div>
       <div class="sc-artist" onclick="event.stopPropagation();viewArtist('${song.artistId}')">${artist?.name || '?'}</div>
       <div class="sc-meta">
-        <span><i data-lucide="play" style="width:10px;height:10px;"></i> ${fmtNum(song.plays || 0)}</span>
+        <span data-song-plays-num="${song.id}"><i data-lucide="play" style="width:10px;height:10px;"></i> ${fmtNum(song.plays || 0)}</span>
         <span><i data-lucide="heart" style="width:10px;height:10px;"></i> ${song.likes || 0}</span>
         <span class="sc-genre">${song.genre}</span>
       </div>
@@ -613,6 +780,8 @@ function songCard(song) {
       </button>
       <button class="icon-btn" onclick="event.stopPropagation();openComments('${song.id}')" title="Comments"><i data-lucide="message-circle"></i></button>
       <button class="icon-btn" onclick="event.stopPropagation();shareSong('${song.id}')" title="Share"><i data-lucide="share-2"></i></button>
+      ${song.type === 'free' && song.downloadable !== false ? `<button class="icon-btn" onclick="event.stopPropagation();downloadSong('${song.id}')" title="Download"><i data-lucide="download"></i></button>` : ''}
+      ${cu && cu.id === song.artistId ? `<button class="icon-btn danger" onclick="event.stopPropagation();deleteOwnSong('${song.id}')" title="Delete song"><i data-lucide="trash-2"></i></button>` : ''}
     </div>
   </div>`;
 }
@@ -629,7 +798,7 @@ function songRow(song, rank) {
       <div class="sr-title">${song.title} ${song.type === 'premium' ? '<span class="badge-prem"><i data-lucide="star" style="width:8px;height:8px;"></i> Premium</span>' : ''} ${_uploadTypeBadge(song)}</div>
       <div class="sr-artist" onclick="event.stopPropagation();viewArtist('${song.artistId}')">${artist?.name || '?'} · ${song.genre}</div>
     </div>
-    <div class="sr-plays"><i data-lucide="play" style="width:11px;height:11px;"></i> ${fmtNum(song.plays || 0)}</div>
+    <div class="sr-plays" data-song-plays-num="${song.id}"><i data-lucide="play" style="width:11px;height:11px;"></i> ${fmtNum(song.plays || 0)}</div>
     <div class="sr-dur">${song.duration || '—'}</div>
     <div class="sr-acts">
       <button class="icon-btn" data-like-id="${song.id}" onclick="event.stopPropagation();toggleLikeSong('${song.id}',this)" title="Like">
@@ -637,7 +806,8 @@ function songRow(song, rank) {
       </button>
       <button class="icon-btn" onclick="event.stopPropagation();openComments('${song.id}')" title="Comment"><i data-lucide="message-circle"></i></button>
       <button class="icon-btn" onclick="event.stopPropagation();shareSong('${song.id}')" title="Share"><i data-lucide="share-2"></i></button>
-      ${song.type === 'free' ? `<button class="icon-btn" onclick="event.stopPropagation();downloadCurrentSong()" title="Download"><i data-lucide="download"></i></button>` : ''}
+      ${song.type === 'free' && song.downloadable !== false ? `<button class="icon-btn" onclick="event.stopPropagation();downloadSong('${song.id}')" title="Download"><i data-lucide="download"></i></button>` : ''}
+      ${cu && cu.id === song.artistId ? `<button class="icon-btn danger" onclick="event.stopPropagation();deleteOwnSong('${song.id}')" title="Delete song"><i data-lucide="trash-2"></i></button>` : ''}
     </div>
   </div>`;
 }
@@ -713,7 +883,7 @@ function renderMyProfile() {
     document.getElementById('my-profile-content').innerHTML = '<div class="empty-state"><div class="es-icon">👤</div><p>Sign in to view your profile</p><button class="btn btn-primary" onclick="openAuthModal()">Sign In</button></div>';
     return;
   }
-  const songs = DB.Songs.byArtist(cu.id).filter(s => s.status === 'approved');
+  const songs = DB.Songs.byArtist(cu.id).filter(s => s.status !== 'rejected' && s.status !== 'banned');
   const follows = DB.Follows.get(cu.id).length;
 
   const avatarHtml = cu.avatar

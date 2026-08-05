@@ -39,28 +39,29 @@ router.get('/stats', async (req, res) => {
     const userList = users ? Object.values(users) : [];
 
     res.json({
-      totalSongs:    songList.filter(s => s.status === 'approved').length,
-      pendingSongs:  songList.filter(s => s.status === 'pending').length,
-      rejectedSongs: songList.filter(s => s.status === 'rejected').length,
-      totalUsers:    userList.length,
-      totalArtists:  userList.filter(u => u.role === 'artist').length,
-      totalFans:     userList.filter(u => u.role === 'fan').length,
-      totalPlays:    songList.reduce((sum, s) => sum + (s.plays || 0), 0),
-      bannedUsers:   userList.filter(u => u.status === 'banned').length,
+      totalSongs:      songList.filter(s => s.status !== 'rejected').length,
+      verifiedSongs:   songList.filter(s => s.verified === true).length,
+      pendingReview:   songList.filter(s => !s.verified && s.status !== 'rejected').length,
+      rejectedSongs:   songList.filter(s => s.status === 'rejected').length,
+      totalUsers:      userList.length,
+      totalArtists:    userList.filter(u => u.role === 'artist').length,
+      totalFans:       userList.filter(u => u.role === 'fan').length,
+      totalPlays:      songList.reduce((sum, s) => sum + (s.plays || 0), 0),
+      bannedUsers:     userList.filter(u => u.status === 'banned').length,
     });
   } catch (err) {
     res.status(500).json({ error: 'Failed to fetch stats' });
   }
 });
 
-// ── Pending uploads ───────────────────────────────────────────
+// ── Songs pending admin review (live but not yet verified/rejected) ──
 router.get('/songs/pending', async (req, res) => {
   try {
     const raw = await dbGet('songs', req.idToken);
     if (!raw) return res.json({ songs: [] });
     const pending = Object.entries(raw)
       .map(([id, s]) => ({ ...s, id }))
-      .filter(s => s.status === 'pending')
+      .filter(s => !s.verified && s.status !== 'rejected')
       .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
     res.json({ songs: pending });
   } catch (err) {
@@ -68,19 +69,31 @@ router.get('/songs/pending', async (req, res) => {
   }
 });
 
-// ── Approve / reject song ─────────────────────────────────────
+// ── Verify / reject song ──────────────────────────────────
 router.patch('/songs/:id', async (req, res) => {
   try {
     const { status } = req.body;
     if (!['approved', 'rejected'].includes(status)) {
       return res.status(400).json({ error: 'status must be "approved" or "rejected"' });
     }
-    await dbUpdate(`songs/${req.params.id}`, {
-      status,
+
+    const updates = {
       reviewedAt: new Date().toISOString(),
       reviewedBy: req.user.localId,
-    }, req.idToken);
-    res.json({ message: `Song ${status} successfully` });
+    };
+
+    if (status === 'approved') {
+      // Approving = mark as verified; song stays live (status remains 'active')
+      updates.verified = true;
+      updates.verifiedAt = new Date().toISOString();
+    } else {
+      // Rejecting = remove from public platform
+      updates.status   = 'rejected';
+      updates.verified = false;
+    }
+
+    await dbUpdate(`songs/${req.params.id}`, updates, req.idToken);
+    res.json({ message: status === 'approved' ? 'Song verified successfully' : 'Song rejected and removed from platform' });
   } catch (err) {
     res.status(500).json({ error: 'Failed to update song' });
   }

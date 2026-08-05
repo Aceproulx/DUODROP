@@ -7,10 +7,26 @@ let _queueIdx   = -1;
 let _shuffle    = false;
 let _repeat     = 'off'; // 'off' | 'one' | 'all'
 let _muted      = false;
-let _played75   = false; // track if 75% played (= "full play" for earnings)
+let _played75    = false; // true once the current track has credited a play
+let _listenedSec = 0;     // cumulative seconds actually heard for the current track
+let _lastTime    = 0;     // last reported playback position (for seek-safe accumulation)
+
+// ── Play counting ──────────────────────────────────────────────
+// A track is credited a "play" once the listener has actually heard
+// 30 seconds of it, or 50% of the track for shorter songs
+// (whichever comes first — industry-standard interval).
+const PLAY_COUNT_SECONDS = 30;  // seconds of cumulative listening
+const PLAY_COUNT_PCT     = 0.5; // share of the track, for short songs
+
 let _npOpen     = false;
 let _playPos    = 0;  // shared playback position (seconds) — real audio or demo
 let _playDur    = 0;  // shared duration (seconds)
+
+// ── Lyrics ────────────────────────────────────────────────────
+let _lyricsVisible  = false;  // lyrics panel open?
+let _lyricsSpeed    = 1.0;    // scroll-rate multiplier (0.5×–2×)
+let _lyricsLines    = [];     // parsed lines for current track
+let _lyricsActiveIdx = -1;    // currently highlighted line
 
 window._currentSong = null;
 
@@ -35,16 +51,29 @@ function playSong(id, queue) {
   }
 
   window._currentSong = song;
-  _played75 = false;
+  _resetPlayTracking();
+
+  // Reset lyrics for the new track
+  _lyricsLines = [];
+  _lyricsActiveIdx = -1;
 
   // Visuals
   updatePlayerUI(song);
   if (_npOpen) updateNowPlayingUI(song);
   if (_npOpen) renderNpQueue();
+  if (_lyricsVisible) renderLyrics(song);
 
   // Audio
   if (song.audioUrl && song.audioUrl.trim()) {
     audio.src = song.audioUrl;
+    
+    // Show spinner while buffering
+    const pbPlayBtn = document.getElementById('pbc-play');
+    if (pbPlayBtn) pbPlayBtn.innerHTML = '<i data-lucide="loader" class="lucide-spin"></i>';
+    const npPlayBtn = document.getElementById('np-play');
+    if (npPlayBtn) npPlayBtn.innerHTML = '<i data-lucide="loader" class="lucide-spin"></i>';
+    if (window.lucide) lucide.createIcons();
+    
     audio.load();
     audio.play().catch(err => {
       console.warn('[Player] Audio failed to play:', song.title, song.audioUrl, err);
@@ -91,7 +120,145 @@ function updatePlayerUI(song) {
   document.getElementById('pb-duration').textContent = song.duration || '0:00';
   document.getElementById('pbc-play').innerHTML = '<i data-lucide="pause"></i>';
 
+  const dlBtn = document.getElementById('pb-dl-btn');
+  if (dlBtn) dlBtn.style.display = (song.type === 'free' && song.downloadable !== false) ? 'inline-flex' : 'none';
+
+  _syncLyricsButtons(song);
+
   if (window.lucide) lucide.createIcons();
+}
+
+/* ── Lyrics ────────────────────────────────────────────────── */
+function _syncLyricsButtons(song) {
+  const hasLyrics = !!(song && song.lyrics && song.lyrics.trim());
+  const pbBtn = document.getElementById('pb-lyrics-btn');
+  const npBtn = document.getElementById('np-lyrics-btn');
+  if (pbBtn) pbBtn.style.display = hasLyrics ? '' : 'none';
+  if (npBtn) npBtn.style.display = hasLyrics ? '' : 'none';
+
+  if (!hasLyrics && _lyricsVisible) {
+    _lyricsVisible = false;
+    _lyricsLines = [];
+    const panel = document.getElementById('np-lyrics');
+    if (panel) panel.classList.remove('open');
+    if (pbBtn) pbBtn.classList.remove('active');
+    if (npBtn) npBtn.classList.remove('active');
+  }
+}
+
+function toggleLyrics() {
+  const song = window._currentSong;
+  if (!song || !song.lyrics || !song.lyrics.trim()) {
+    showToast('No lyrics available for this track', 'info');
+    return;
+  }
+
+  if (!_npOpen) openNowPlaying(); // openNowPlaying renders lyrics if already visible
+  _lyricsVisible = !_lyricsVisible;
+
+  const panel = document.getElementById('np-lyrics');
+  if (panel) panel.classList.toggle('open', _lyricsVisible);
+
+  const pbBtn = document.getElementById('pb-lyrics-btn');
+  const npBtn = document.getElementById('np-lyrics-btn');
+  if (pbBtn) pbBtn.classList.toggle('active', _lyricsVisible);
+  if (npBtn) npBtn.classList.toggle('active', _lyricsVisible);
+
+  if (_lyricsVisible) {
+    renderLyrics(song);
+    updateLyrics(_playPos, _playDur);
+  }
+}
+
+function renderLyrics(song) {
+  const body = document.getElementById('np-lyrics-body');
+  if (!body) return;
+
+  const raw = (song && song.lyrics ? song.lyrics : '').trim();
+  _lyricsLines = raw ? raw.split('\n').map(l => l.trim()).filter(Boolean) : [];
+  _lyricsActiveIdx = -1;
+
+  if (!_lyricsLines.length) {
+    body.innerHTML = '<div class="np-lyrics-empty">No lyrics provided for this track.</div>';
+    return;
+  }
+
+  body.innerHTML = _lyricsLines.map(line => `<div class="np-lyric-line">${escHtml(line)}</div>`).join('');
+}
+
+function updateLyrics(current, total) {
+  if (!_lyricsVisible || !_lyricsLines.length) return;
+
+  let idx = 0;
+  if (total > 0 && _lyricsSpeed > 0) {
+    const prog = Math.min((current / total) * _lyricsSpeed, 1);
+    idx = Math.min(_lyricsLines.length - 1, Math.floor(prog * _lyricsLines.length));
+  }
+
+  if (idx === _lyricsActiveIdx) return;
+  _lyricsActiveIdx = idx;
+
+  const body = document.getElementById('np-lyrics-body');
+  if (!body) return;
+  const items = body.querySelectorAll('.np-lyric-line');
+  items.forEach((el, i) => el.classList.toggle('active', i === idx));
+
+  const active = items[idx];
+  if (active) {
+    const bodyRect = body.getBoundingClientRect();
+    const lineRect = active.getBoundingClientRect();
+    // Keep the active line centered inside the scrollable area
+    body.scrollTop += (lineRect.top - bodyRect.top) - body.clientHeight / 2 + lineRect.height / 2;
+  }
+}
+
+function setLyricsSpeed(val) {
+  _lyricsSpeed = parseFloat(val) || 1;
+  const label = document.getElementById('np-lyrics-speed-label');
+  if (label) label.textContent = '×' + _lyricsSpeed.toFixed(1);
+  _lyricsActiveIdx = -1;
+  updateLyrics(_playPos, _playDur);
+}
+
+/* ── Play tracking ──────────────────────────────────────────── */
+function _resetPlayTracking() {
+  _played75    = false;
+  _listenedSec = 0;
+  _lastTime    = 0;
+}
+
+function _playProgress(current) {
+  // Accumulate only forward movement — ignore seeks/jumps (>8s) so a
+  // listener can't skip straight to the end to farm a play.
+  const delta = current - _lastTime;
+  if (delta > 0 && delta < 8) _listenedSec += delta;
+  _lastTime = current;
+}
+
+function _shouldCountPlay(listened, total) {
+  if (total <= 0) return false;
+  const threshold = Math.min(PLAY_COUNT_SECONDS, total * PLAY_COUNT_PCT);
+  return listened >= threshold;
+}
+
+function _creditPlay() {
+  if (_played75) return;
+  _played75 = true;
+  const song = window._currentSong;
+  if (!song) return;
+  DB.Songs.incrementPlay(song.id);
+  if (window.API) API.songs.play(song.id);
+  _refreshPlayCountsUI(song);
+}
+
+function _refreshPlayCountsUI(song) {
+  if (!song) return;
+  const heroPlays = document.getElementById('hs-plays');
+  if (heroPlays) heroPlays.textContent = fmtNum(DB.Stats.total().plays);
+  const plays = fmtNum(song.plays || 0);
+  document.querySelectorAll(`[data-song-plays-num="${song.id}"]`).forEach(el => {
+    el.textContent = plays;
+  });
 }
 
 // Demo play simulation (for songs without real audio URLs)
@@ -110,10 +277,9 @@ function simulateDemoPlay(song) {
 
     updateProgress(elapsed, durationSecs);
 
-    // Credit play at 75% mark
-    if (pct >= 0.75 && !_played75) {
-      _played75 = true;
-      DB.Songs.incrementPlay(song.id);
+    // Credit play once the listening interval is met
+    if (_shouldCountPlay(elapsed, durationSecs)) {
+      _creditPlay();
     }
 
     if (pct >= 1) {
@@ -142,6 +308,7 @@ function updateProgress(current, total) {
   document.getElementById('pb-current').textContent    = fmtTime(current);
   document.getElementById('pb-duration').textContent   = fmtTime(total);
   if (_npOpen) updateNpProgress(current, total);
+  updateLyrics(current, total);
 }
 
 function fmtTime(secs) {
@@ -155,27 +322,48 @@ audio.addEventListener('timeupdate', () => {
   if (!audio.duration) return;
   _playPos = audio.currentTime;
   _playDur = audio.duration;
-  const pct = (audio.currentTime / audio.duration) * 100;
+  _playProgress(audio.currentTime);
   updateProgress(audio.currentTime, audio.duration);
 
-  if (pct >= 75 && !_played75) {
-    _played75 = true;
-    if (window._currentSong) {
-      DB.Songs.incrementPlay(window._currentSong.id);
-      // Also persist to server
-      if (window.API) API.songs.play(window._currentSong.id);
-    }
+  // Credit a play once the listening interval is met
+  if (_shouldCountPlay(_listenedSec, audio.duration)) {
+    _creditPlay();
   }
 });
 
 audio.addEventListener('ended', onTrackEnd);
-audio.addEventListener('play',  () => {
+
+audio.addEventListener('waiting', () => {
+  document.getElementById('pbc-play').innerHTML = '<i data-lucide="loader" class="lucide-spin"></i>';
+  const npPlay = document.getElementById('np-play');
+  if (npPlay) npPlay.innerHTML = '<i data-lucide="loader" class="lucide-spin"></i>';
+  if (window.lucide) lucide.createIcons();
+});
+
+audio.addEventListener('playing',  () => {
   document.getElementById('pbc-play').innerHTML = '<i data-lucide="pause"></i>';
   const npPlay = document.getElementById('np-play');
   if (npPlay) npPlay.innerHTML = '<i data-lucide="pause"></i>';
   const wave = document.getElementById('np-wave');
   if (wave) wave.classList.add('active');
   if (window.lucide) lucide.createIcons();
+  
+  // Preload next track's metadata only (after a delay so current track settles first)
+  // Using 'metadata' instead of 'auto' avoids downloading the whole file and freezing the page
+  clearTimeout(window._preloadTimer);
+  window._preloadTimer = setTimeout(() => {
+    if (_queue.length && _queueIdx < _queue.length - 1) {
+      const nextId = _queue[_queueIdx + 1];
+      const nextSong = DB.Songs.find(nextId);
+      if (nextSong && nextSong.audioUrl) {
+        if (!window._nextPreloader) window._nextPreloader = new Audio();
+        if (window._nextPreloader.src !== nextSong.audioUrl) {
+          window._nextPreloader.preload = 'metadata'; // headers only — no full download
+          window._nextPreloader.src = nextSong.audioUrl;
+        }
+      }
+    }
+  }, 3000); // wait 3s so current track buffers first
 });
 audio.addEventListener('pause', () => {
   document.getElementById('pbc-play').innerHTML = '<i data-lucide="play"></i>';
@@ -288,6 +476,11 @@ function openNowPlaying() {
   updateNowPlayingUI(window._currentSong);
   renderNpQueue();
   startWaveform();
+  if (_lyricsVisible && window._currentSong) {
+    const panel = document.getElementById('np-lyrics');
+    if (panel) panel.classList.add('open');
+    renderLyrics(window._currentSong);
+  }
   if (window.lucide) lucide.createIcons();
 }
 

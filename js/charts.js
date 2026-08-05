@@ -9,7 +9,7 @@ function renderCharts() {
   const el = document.getElementById('charts-content');
   if (!el) return;
 
-  const allSongs = DB.Songs.all().filter(s => s.status === 'approved');
+  const allSongs = DB.Songs.all().filter(s => s.status !== 'rejected' && s.status !== 'banned');
 
   // Period filter (simulated via play-count tiers)
   function getSongScore(song) {
@@ -26,7 +26,7 @@ function renderCharts() {
 
   // Top artist spotlight — artist with most plays overall
   const topArtist = DB.Artists.topArtists(1)[0];
-  const topArtistSongs = topArtist ? DB.Songs.byArtist(topArtist.id).filter(s => s.status === 'approved').slice(0, 3) : [];
+  const topArtistSongs = topArtist ? DB.Songs.byArtist(topArtist.id).filter(s => s.status !== 'rejected' && s.status !== 'banned').slice(0, 3) : [];
 
   // Genre options
   const genres = ['all', ...new Set(allSongs.map(s => s.genre).filter(Boolean))];

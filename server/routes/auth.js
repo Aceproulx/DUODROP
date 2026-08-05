@@ -8,8 +8,9 @@
    POST /api/auth/refresh   — refresh ID token
    ================================================================= */
 const router = require('express').Router();
-const { signUp, signIn, refreshToken, verifyIdToken, dbGet, dbSet, dbUpdate, uid } = require('../config/firebase');
+const { signUp, signIn, refreshToken, verifyIdToken, dbGet, dbSet, dbUpdate, uid, dbDelete } = require('../config/firebase');
 const { requireAuth } = require('../middleware/auth');
+const cloudinary = require('../config/cloudinary');
 
 // ── Turnstile Verification Helper ─────────────────────────────
 async function verifyTurnstile(token) {
@@ -281,7 +282,7 @@ router.post('/refresh', async (req, res) => {
 // POST /api/auth/google — Firebase Google OAuth
 router.post('/google', async (req, res) => {
   try {
-    const { idToken, role = 'fan', isNew = false } = req.body;
+    const { idToken, refreshToken, photoURL: clientPhotoURL = '', role = 'fan', isNew = false } = req.body;
     if (!idToken) return res.status(400).json({ error: 'idToken required' });
 
     // 1. Verify the Firebase ID token (issued by Google via Firebase)
@@ -289,7 +290,10 @@ router.post('/google', async (req, res) => {
     const uid_val      = firebaseUser.localId;
     const email        = firebaseUser.email || '';
     const displayName  = firebaseUser.displayName || email.split('@')[0] || 'User';
-    const photoUrl     = firebaseUser.photoUrl || '';
+    // Use photo from client SDK (most reliable) — fallback to accounts:lookup field
+    const rawPhoto     = clientPhotoURL || firebaseUser.photoUrl || '';
+    // Upgrade to high-res and ensure no size restriction
+    const photoUrl     = rawPhoto ? rawPhoto.replace(/=s\d+-c$/, '=s400-c') : '';
 
     // 2. Check if profile already exists in RTDB
     let profile = await dbGet(`users/${uid_val}`, idToken);
@@ -329,18 +333,33 @@ router.post('/google', async (req, res) => {
           createdAt: new Date().toISOString(),
         }, idToken);
       }
-    } else {
-      // Returning user — refresh avatar from Google if they don't have one
-      if (!profile.avatar && photoUrl) {
-        await dbUpdate(`users/${uid_val}`, { avatar: photoUrl }, idToken);
-        profile.avatar = photoUrl;
+      
+      // Upload avatar to Cloudinary in the background for new users to avoid login delay
+      if (photoUrl && !photoUrl.includes('cloudinary.com')) {
+        cloudinary.uploader.upload(photoUrl, { folder: 'duodrop/avatars' })
+          .then(res => dbUpdate(`users/${uid_val}`, { avatar: res.secure_url }, idToken))
+          .catch(err => console.error('Background Cloudinary upload failed:', err.message));
       }
+      
+    } else {
+      // Returning user — if they still have a Google URL (rate-limited) or no avatar, upload to Cloudinary
+      if (photoUrl && (!profile.avatar || profile.avatar.includes('googleusercontent.com'))) {
+        try {
+          const up = await cloudinary.uploader.upload(photoUrl, { folder: 'duodrop/avatars' });
+          await dbUpdate(`users/${uid_val}`, { avatar: up.secure_url }, idToken);
+          profile.avatar = up.secure_url;
+        } catch (err) {
+          console.error('Cloudinary upload failed:', err.message);
+          // Keep using whatever we have if Cloudinary fails
+        }
+      }
+      
       if (profile.status === 'banned') {
         return res.status(403).json({ error: 'Account banned. Contact support: 0888 240 630.' });
       }
     }
 
-    res.json({ user: profile, idToken, refreshToken: '' });
+    res.json({ user: profile, idToken, refreshToken: refreshToken || '' });
   } catch (err) {
     console.error('[auth/google]', err.message);
     res.status(401).json({ error: 'Google sign-in verification failed: ' + err.message });

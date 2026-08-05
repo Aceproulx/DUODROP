@@ -66,15 +66,17 @@ async function signInWithGoogle(role = 'fan') {
     provider.setCustomParameters({ prompt: 'select_account' });
 
     // Open the Google popup
-    const result  = await auth.signInWithPopup(provider);
-    const idToken = await result.user.getIdToken();
-    const isNew   = result.additionalUserInfo?.isNewUser;
+    const result      = await auth.signInWithPopup(provider);
+    const idToken     = await result.user.getIdToken();
+    const refreshToken = result.user.refreshToken;
+    const photoURL    = result.user.photoURL || '';   // guaranteed by Firebase SDK
+    const isNew       = result.additionalUserInfo?.isNewUser;
 
     // Send token to our backend
     const res = await fetch('/api/auth/google', {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ idToken, role, isNew }),
+      body:    JSON.stringify({ idToken, refreshToken, photoURL, role, isNew }),
     });
 
     const data = await res.json();

@@ -733,15 +733,19 @@ function saveSettingsFromUI() {
       quality:   document.getElementById('set-quality')?.value || 'high',
     },
     notifications: {
-      followers:  document.getElementById('notif-follow')?.checked ?? true,
-      comments:   document.getElementById('notif-comment')?.checked ?? true,
-      earnings:   document.getElementById('notif-earn')?.checked ?? true,
-      releases:   document.getElementById('notif-release')?.checked ?? true,
+      approvals: document.getElementById('notif-approval')?.checked ?? true,
+      likes:     document.getElementById('notif-like')?.checked ?? true,
+      comments:  document.getElementById('notif-comment')?.checked ?? true,
+      followers: document.getElementById('notif-follow')?.checked ?? true,
+      earnings:  document.getElementById('notif-earn')?.checked ?? true,
     }
   };
 
   _userSettings.audio = prefs.audio;
   _userSettings.notifications = prefs.notifications;
+
+  // Mirror locally so the notification center can gate delivery instantly
+  DB.Settings.set('notifications', prefs.notifications);
 
   if (API.auth.isLoggedIn()) {
     API.auth.saveSettings(prefs).catch(() => {});
@@ -872,60 +876,74 @@ async function changePassword() {
 }
 
 // ── Upgrade to artist ─────────────────────────────────────────
-async function upgradeToArtist() {
+function upgradeToArtist() {
   const cu = DB.Users.current();
   if (!cu) return;
-  if (!confirm('Switch your account to an Artist account? You will be able to upload music and earn kwacha.')) return;
 
-  DB.Users.update(cu.id, { role: 'artist' });
-  updateUserUI();
-  renderSettings();
-  showToast('Upgrading your account...', 'info');
+  openConfirm({
+    title: 'Become an Artist',
+    icon: 'mic-vocal',
+    message: 'Switch your account to an Artist account? You will be able to upload music and earn kwacha.',
+    confirmText: 'Switch to Artist',
+    confirmIcon: 'zap',
+    variant: 'btn-accent',
+    onConfirm: async () => {
+      DB.Users.update(cu.id, { role: 'artist' });
+      updateUserUI();
+      renderSettings();
+      showToast('Upgrading your account...', 'info');
 
-  try {
-    const result = await API.auth.updateProfile({ role: 'artist' });
-    if (result.user) {
-      localStorage.setItem('dd_user', JSON.stringify(result.user));
-    }
-    await _fetch('/api/artists/register', { method: 'POST', body: JSON.stringify({}) });
-    showToast('You are now an Artist! Go upload your music.', 'success');
-  } catch (err) {
-    console.error('[upgradeToArtist]', err);
-    showToast('Role saved locally. Sync failed: ' + err.message, 'error');
-  }
+      try {
+        const result = await API.auth.updateProfile({ role: 'artist' });
+        if (result.user) {
+          localStorage.setItem('dd_user', JSON.stringify(result.user));
+        }
+        await _fetch('/api/artists/register', { method: 'POST', body: JSON.stringify({}) });
+        showToast('You are now an Artist! Go upload your music.', 'success');
+      } catch (err) {
+        console.error('[upgradeToArtist]', err);
+        showToast('Role saved locally. Sync failed: ' + err.message, 'error');
+      }
+    },
+  });
 }
 
 // ── Delete Account ──────────────────────────────────────────
-async function deleteAccount() {
+function deleteAccount() {
   const cu = DB.Users.current();
   if (!cu) return;
 
-  // First confirmation
-  if (!confirm('Are you sure you want to delete your account? This will permanently remove all your data, songs, earnings, and profile.')) return;
-  // Second confirmation
-  if (!confirm('This action CANNOT be undone. Type "DELETE" in your mind and click OK to proceed.')) return;
+  openConfirm({
+    title: 'Delete Account',
+    icon: 'alert-triangle',
+    message: 'Are you sure you want to delete your account? This will permanently remove all your data, songs, earnings, and profile.',
+    requireWord: 'DELETE',
+    confirmText: 'Delete My Account',
+    confirmIcon: 'trash-2',
+    onConfirm: async () => {
+      showToast('Deleting your account...', 'info');
 
-  showToast('Deleting your account...', 'info');
+      try {
+        // Delete from Firebase backend
+        if (API.auth.isLoggedIn()) {
+          await API.auth.deleteAccount();
+        }
 
-  try {
-    // Delete from Firebase backend
-    if (API.auth.isLoggedIn()) {
-      await API.auth.deleteAccount();
-    }
+        // Clear local data
+        localStorage.removeItem('dd_token');
+        localStorage.removeItem('dd_refresh');
+        localStorage.removeItem('dd_user');
+        localStorage.removeItem('duodrop_v3');
+        localStorage.clear();
 
-    // Clear local data
-    localStorage.removeItem('dd_token');
-    localStorage.removeItem('dd_refresh');
-    localStorage.removeItem('dd_user');
-    localStorage.removeItem('duodrop_v3');
-    localStorage.clear();
-
-    showToast('Account deleted. You will be signed out.', 'success');
-    setTimeout(() => location.reload(), 1500);
-  } catch (err) {
-    console.error('[deleteAccount]', err);
-    showToast('Failed to delete account: ' + err.message + '. Contact support if this persists.', 'error');
-  }
+        showToast('Account deleted. You will be signed out.', 'success');
+        setTimeout(() => location.reload(), 1500);
+      } catch (err) {
+        console.error('[deleteAccount]', err);
+        showToast('Failed to delete account: ' + err.message + '. Contact support if this persists.', 'error');
+      }
+    },
+  });
 }
 
 // ── About page renderer ────────────────────────────────────────
@@ -952,23 +970,34 @@ window.openNotificationsModal = async function() {
     if (typeof openAuthModal === 'function') openAuthModal();
     return;
   }
-  
+
   if (!_settingsLoaded) await _loadUserSettings();
 
+  const na = _userSettings.notifications?.approvals !== false;
+  const nl = _userSettings.notifications?.likes     !== false;
+  const nc = _userSettings.notifications?.comments  !== false;
   const nf = _userSettings.notifications?.followers !== false;
-  const nc = _userSettings.notifications?.comments !== false;
-  const ne = _userSettings.notifications?.earnings !== false;
-  const nr = _userSettings.notifications?.releases !== false;
+  const ne = _userSettings.notifications?.earnings  !== false;
 
-  const fEl = document.getElementById('notif-follow');
+  const aEl = document.getElementById('notif-approval');
+  const lEl = document.getElementById('notif-like');
   const cEl = document.getElementById('notif-comment');
+  const fEl = document.getElementById('notif-follow');
   const eEl = document.getElementById('notif-earn');
-  const rEl = document.getElementById('notif-release');
-  
-  if (fEl) fEl.checked = nf;
-  if (cEl) cEl.checked = nc;
-  if (eEl) eEl.checked = ne;
-  if (rEl) rEl.checked = nr;
 
+  if (aEl) aEl.checked = na;
+  if (lEl) lEl.checked = nl;
+  if (cEl) cEl.checked = nc;
+  if (fEl) fEl.checked = nf;
+  if (eEl) eEl.checked = ne;
+
+  // Open the feed by default (settings live behind the "Settings" button)
+  if (typeof showNotifFeed === 'function') showNotifFeed();
   if (typeof openModal === 'function') openModal('modal-notifications');
+
+  // Ensure artists have at least one notification to see, then mark all read
+  if (typeof _seedDemoNotifications === 'function') _seedDemoNotifications();
+  DB.Notifications.markAllRead(cu.id);
+  if (typeof renderNotifications === 'function') renderNotifications();
+  if (typeof refreshNotifBadge === 'function') refreshNotifBadge();
 };

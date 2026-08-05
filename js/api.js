@@ -21,6 +21,45 @@ const _token = {
   isLoggedIn() { return !!this.get(); },
 };
 
+// ── Token refresh helpers ──────────────────────────────────────
+/**
+ * Try to get a fresh ID token from Firebase SDK (works for Google Sign-In users).
+ * Falls back to our backend refresh route for email/password users.
+ * Returns the new idToken string, or null if refresh failed.
+ */
+async function _refreshToken() {
+  // 1. Try Firebase SDK if available (Google Sign-In users)
+  try {
+    if (window.firebase?.auth && firebase.apps?.length > 0) {
+      const auth = firebase.auth();
+      const user = auth.currentUser;
+      if (user) {
+        const newToken = await user.getIdToken(/* forceRefresh= */ true);
+        _token.set(newToken, _token.getRefresh());
+        return newToken;
+      }
+    }
+  } catch (_) { /* Firebase SDK not available or user not signed in via SDK */ }
+
+  // 2. Fall back to backend refresh route (email/password users)
+  const rt = _token.getRefresh();
+  if (!rt) return null;
+  try {
+    const rr = await fetch('/api/auth/refresh', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ refreshToken: rt }),
+    });
+    if (rr.ok) {
+      const { idToken, refreshToken } = await rr.json();
+      _token.set(idToken, refreshToken);
+      return idToken;
+    }
+  } catch (_) { /* refresh request failed */ }
+
+  return null; // both methods failed — user must sign in again
+}
+
 // ── Base fetch ────────────────────────────────────────────────
 async function _fetch(path, opts = {}) {
   const token = _token.get();
@@ -30,22 +69,14 @@ async function _fetch(path, opts = {}) {
   let res = await fetch(path, { ...opts, headers });
 
   // Auto refresh on 401
-  if (res.status === 401 && _token.getRefresh()) {
-    try {
-      const rr = await fetch('/api/auth/refresh', {
-        method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ refreshToken: _token.getRefresh() }),
-      });
-      if (rr.ok) {
-        const { idToken, refreshToken } = await rr.json();
-        _token.set(idToken, refreshToken);
-        headers['Authorization'] = `Bearer ${idToken}`;
-        res = await fetch(path, { ...opts, headers });
-      } else {
-        _token.clear();
-      }
-    } catch (_) { _token.clear(); }
+  if (res.status === 401) {
+    const newToken = await _refreshToken();
+    if (newToken) {
+      headers['Authorization'] = `Bearer ${newToken}`;
+      res = await fetch(path, { ...opts, headers });
+    } else {
+      _token.clear();
+    }
   }
 
   const data = await res.json().catch(() => ({}));
@@ -119,7 +150,9 @@ const API = {
     get(id)         { return _fetch(`/api/songs/${id}`); },
     create(payload) { return _fetch('/api/songs', { method: 'POST', body: JSON.stringify(payload) }); },
     play(id)        { return _fetch(`/api/songs/${id}/play`, { method: 'POST' }).catch(() => {}); },
+    download(id)    { return _fetch(`/api/songs/${id}/download`, { method: 'POST' }).catch(() => {}); },
     like(id)        { return _fetch(`/api/songs/${id}/like`, { method: 'POST' }); },
+    remove(id)      { return _fetch(`/api/songs/${id}`, { method: 'DELETE' }); },
     comments(id)    { return _fetch(`/api/songs/${id}/comments`); },
     comment(id, text) {
       return _fetch(`/api/songs/${id}/comments`, { method: 'POST', body: JSON.stringify({ text }) });

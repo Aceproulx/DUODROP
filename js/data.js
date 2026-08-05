@@ -14,7 +14,9 @@ const DB = (() => {
     likes:      {},
     follows:    {},
     plays:      {},
+    playsDaily: {},
     history:    [],
+    notifications: [],
     earnings:   {},
     fanEarnings:{},
     referrals:  {},
@@ -117,6 +119,7 @@ const DB = (() => {
         price:       parseFloat(data.price || 0),
         artwork:     data.artwork || '',
         audioUrl:    data.audioUrl || '',
+        lyrics:      data.lyrics || '',
         artistId:    artistId,
         plays:       0,
         downloads:   0,
@@ -128,6 +131,7 @@ const DB = (() => {
       };
       get().songs.push(song);
       get().plays[song.id] = 0;
+      get().playsDaily[song.id] = {};
       save();
       return song;
     },
@@ -137,6 +141,10 @@ const DB = (() => {
       if (!s) return;
       s.plays = (s.plays || 0) + 1;
       get().plays[id] = s.plays;
+      if (!get().playsDaily[id]) get().playsDaily[id] = {};
+      const now = new Date();
+      const dayKey = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
+      get().playsDaily[id][dayKey] = (get().playsDaily[id][dayKey] || 0) + 1;
       ArtistEarnings.creditPlay(s.artistId, id);
       const cu = Users.current();
       if (cu) History.add(cu.id, id);
@@ -145,14 +153,14 @@ const DB = (() => {
 
     trending(limit = 20, genre = '') {
       return [...get().songs]
-        .filter(s => s.status === 'approved' && (!genre || s.genre === genre))
+        .filter(s => s.status !== 'rejected' && s.status !== 'banned' && (!genre || s.genre === genre))
         .sort((a, b) => (b.plays || 0) - (a.plays || 0))
         .slice(0, limit);
     },
 
     recent(limit = 10) {
       return [...get().songs]
-        .filter(s => s.status === 'approved')
+        .filter(s => s.status !== 'rejected' && s.status !== 'banned')
         .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
         .slice(0, limit);
     },
@@ -160,12 +168,32 @@ const DB = (() => {
     search(q) {
       const lq = q.toLowerCase();
       return get().songs.filter(s =>
-        s.status === 'approved' && (
+        s.status !== 'rejected' && s.status !== 'banned' && (
           s.title.toLowerCase().includes(lq) ||
           s.genre.toLowerCase().includes(lq) ||
           (s.tags || []).some(t => t.toLowerCase().includes(lq))
         )
       );
+    },
+
+    remove(id) {
+      const arr = get().songs;
+      const idx = arr.findIndex(s => s.id === id);
+      if (idx < 0) return false;
+      arr.splice(idx, 1);
+
+      // Clean up all references to the deleted song
+      delete get().plays[id];
+      delete get().playsDaily[id];
+      delete get().comments[id];
+      Object.keys(get().likes).forEach(uid => {
+        const set = get().likes[uid];
+        if (set && set.includes(id)) set.splice(set.indexOf(id), 1);
+      });
+      get().history = (get().history || []).filter(h => h.songId !== id);
+      get().uploads = (get().uploads || []).filter(u => u.id !== id);
+      save();
+      return true;
     },
   };
 
@@ -245,6 +273,66 @@ const DB = (() => {
     forUser(userId, n=20){ return get().history.filter(h => h.userId === userId).slice(0, n); },
   };
 
+  // ── Notifications ─────────────────────────────────────────
+  // Types: 'approvals' (song approved/rejected), 'likes', 'comments',
+  //        'followers', 'earnings'. Each is gated by the matching
+  //        preference in settings.notifications.
+  const Notifications = {
+    all(userId) {
+      return (get().notifications || [])
+        .filter(n => n.userId === userId)
+        .sort((a, b) => new Date(b.ts) - new Date(a.ts));
+    },
+
+    unreadCount(userId) {
+      return this.all(userId).filter(n => !n.read).length;
+    },
+
+    enabled(type) {
+      const prefs = get().settings.notifications || {};
+      return prefs[type] !== false;
+    },
+
+    add(userId, data) {
+      if (!userId) return null;
+      const cu = Users.current();
+      // Never notify a user about their own action (e.g. self-like)
+      if (cu && data.actorId && data.actorId === userId) return null;
+      if (!this.enabled(data.type)) return null;
+
+      const notif = {
+        id:        uid(),
+        userId,
+        type:      data.type,
+        title:     data.title || '',
+        body:      data.body || '',
+        refId:     data.refId || '',
+        actorId:   data.actorId || '',
+        actorName: data.actorName || '',
+        read:      false,
+        ts:        new Date().toISOString(),
+      };
+
+      if (!Array.isArray(get().notifications)) get().notifications = [];
+      get().notifications.push(notif);
+      if (get().notifications.length > 200) {
+        get().notifications.splice(0, get().notifications.length - 200);
+      }
+      save();
+      return notif;
+    },
+
+    markAllRead(userId) {
+      (get().notifications || []).forEach(n => { if (n.userId === userId) n.read = true; });
+      save();
+    },
+
+    clear(userId) {
+      get().notifications = (get().notifications || []).filter(n => n.userId !== userId);
+      save();
+    },
+  };
+
   // ── Artist Earnings ───────────────────────────────────────
   const ArtistEarnings = {
     get(artistId) { return get().earnings[artistId] || { balance: 0, totalPlays: 0, history: [] }; },
@@ -262,6 +350,16 @@ const DB = (() => {
         e.totalPlays  = (e.totalPlays || 0) + 1;
         e.history.unshift({ type: 'play', amount: 1, songId, songTitle: song.title, ts: new Date().toISOString() });
         if (e.history.length > 200) e.history.pop();
+
+        // Notify on every MK 50 earnings milestone
+        if (e.balance > 0 && e.balance % 50 === 0) {
+          Notifications.add(artistId, {
+            type: 'earnings',
+            title: 'Earnings milestone 🎉',
+            body: `You've earned a total of MK ${e.balance.toLocaleString()} from your music.`,
+            refId: songId,
+          });
+        }
       }
     },
 
@@ -339,7 +437,7 @@ const DB = (() => {
     // Call POST /api/seed (with secret) from the admin panel or a script.
   }
 
-  return { get, save, load, seed, uid, Users, Songs, Artists, Likes, Follows, Comments, History, ArtistEarnings, FanEarnings, Playlists, Settings, Stats };
+  return { get, save, load, seed, uid, Users, Songs, Artists, Likes, Follows, Comments, History, Notifications, ArtistEarnings, FanEarnings, Playlists, Settings, Stats };
 })();
 
 // Initialize local cache from localStorage (server data merges in on boot via loadServerData)

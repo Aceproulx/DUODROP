@@ -143,7 +143,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         localStorage.removeItem('_pendingPaychanguUpload');
 
         window.history.replaceState({}, document.title, window.location.pathname);
-        showToast(`"${pendingData.title}" submitted! It will go live after admin review.`, 'success');
+        showToast(`"${pendingData.title}" is now live on the platform! 🎵`, 'success');
         if (typeof showPage === 'function') showPage('dashboard');
 
       } catch (err) {
@@ -169,6 +169,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 /* ── File handlers ─────────────────────────────────────────────── */
+window.toggleLyricsField = function(show) {
+  const wrap = document.getElementById('u-lyrics-wrap');
+  if (wrap) wrap.style.display = show ? 'block' : 'none';
+  if (!show) clearFieldError('err-u-lyrics');
+};
+
 function handleAudioFile(input) {
   const file = input.files[0];
   if (!file) return;
@@ -276,6 +282,16 @@ function submitUpload(e) {
   const tags  = document.getElementById('u-tags').value.trim();
   const type  = document.getElementById('u-type').value;
   const price = parseFloat(document.getElementById('u-price').value || 0);
+  const downloadableEl = document.getElementById('u-downloadable');
+  const downloadable = downloadableEl ? downloadableEl.checked : true;
+
+  const lyricsToggle = document.getElementById('u-lyrics-toggle');
+  const lyrics = lyricsToggle && lyricsToggle.checked
+    ? document.getElementById('u-lyrics').value.trim()
+    : '';
+  if (lyrics && lyrics.length > 20000) {
+    showFieldError('err-u-lyrics', 'Lyrics must be max 20,000 characters'); return;
+  }
 
   let hasErr = false;
   if (!artist) { showFieldError('err-u-artist', 'Artist name is required'); hasErr = true; } else { clearFieldError('err-u-artist'); }
@@ -299,6 +315,8 @@ function submitUpload(e) {
   // Store data and show guidelines modal
   window._pendingUploadData = {
     artist, title, genre, desc, tags, type, price, txref,
+    lyrics,
+    downloadable,
     uploadType,
     amount: uploadType === 'monetized' ? 5000 : 0,
     artistId: cu.id,
@@ -416,7 +434,7 @@ async function doFreeUpload(data) {
     _resetUploadForm();
 
     window.history.replaceState({}, document.title, window.location.pathname);
-    showToast(`"${data.title}" submitted! It will go live after admin review.`, 'success');
+    showToast(`"${data.title}" is now live on the platform! 🎵`, 'success');
     if (typeof showPage === 'function') showPage('dashboard');
 
   } catch (err) {
@@ -536,6 +554,12 @@ function _resetUploadForm() {
     '<div class="fd-icon"><i data-lucide="image"></i></div><div class="fd-label">Click to upload artwork</div><div class="fd-hint">JPG or PNG — min 500×500px</div>';
   ['audio-drop','art-drop'].forEach(id => document.getElementById(id)?.classList.remove('has-file'));
   document.getElementById('zod-status').innerHTML = '';
+
+  const lyricsToggle = document.getElementById('u-lyrics-toggle');
+  if (lyricsToggle) lyricsToggle.checked = false;
+  const lyricsInput = document.getElementById('u-lyrics');
+  if (lyricsInput) lyricsInput.value = '';
+  toggleLyricsField(false);
 
   // Reset type selector to free
   selectUploadType('free');

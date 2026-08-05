@@ -181,20 +181,39 @@ function renderAdminPending() {
     </div>`;
 }
 
-async function adminBanUser(userId, banStatus) {
-  if (!confirm(banStatus ? `Ban this user?` : `Unban this user?`)) return;
-  try {
-    await window.API.admin.banUser(userId, banStatus);
-    showToast(banStatus ? `<i data-lucide="ban" style="width:16px;height:16px;vertical-align:middle"></i> User banned` : `<i data-lucide="check-circle" style="width:16px;height:16px;vertical-align:middle"></i> User unbanned`, banStatus ? 'error' : 'success');
-    renderAdminDashboard();
-  } catch (err) {
-    showToast(err.message, 'error');
-  }
+function adminBanUser(userId, banStatus) {
+  openConfirm({
+    title: banStatus ? 'Ban User' : 'Unban User',
+    icon: banStatus ? 'ban' : 'user-check',
+    message: banStatus ? 'Ban this user? They will no longer be able to sign in or use the platform.' : 'Unban this user? They will regain access to the platform.',
+    confirmText: banStatus ? 'Ban User' : 'Unban User',
+    confirmIcon: banStatus ? 'ban' : 'check',
+    variant: banStatus ? 'btn-danger' : 'btn-primary',
+    onConfirm: async () => {
+      try {
+        await window.API.admin.banUser(userId, banStatus);
+        showToast(banStatus ? `<i data-lucide="ban" style="width:16px;height:16px;vertical-align:middle"></i> User banned` : `<i data-lucide="check-circle" style="width:16px;height:16px;vertical-align:middle"></i> User unbanned`, banStatus ? 'error' : 'success');
+        renderAdminDashboard();
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    },
+  });
 }
 
 async function adminApproveSong(songId) {
   try {
     await window.API.admin.approveSong(songId, 'approved');
+    const song = DB.Songs.find(songId);
+    if (song && song.artistId) {
+      DB.Notifications.add(song.artistId, {
+        type: 'approvals',
+        title: 'Song approved',
+        body: `Your song "${song.title}" has been approved and is now live on DUODROP.`,
+        refId: songId,
+      });
+      if (typeof refreshNotifBadge === 'function') refreshNotifBadge();
+    }
     showToast(`<i data-lucide="check-circle" style="width:16px;height:16px;vertical-align:middle"></i> Song approved and published!`, 'success');
     renderAdminDashboard();
   } catch (err) {
@@ -202,27 +221,53 @@ async function adminApproveSong(songId) {
   }
 }
 
-async function adminRejectSong(songId) {
-  if (!confirm(`Reject this song?`)) return;
-  try {
-    await window.API.admin.approveSong(songId, 'rejected');
-    showToast(`<i data-lucide="x-circle" style="width:16px;height:16px;vertical-align:middle"></i> Song rejected`, 'error');
-    renderAdminDashboard();
-  } catch (err) {
-    showToast(err.message, 'error');
-  }
+function adminRejectSong(songId) {
+  openConfirm({
+    title: 'Reject Song',
+    icon: 'x-circle',
+    message: 'Reject this song? It will be removed from the platform.',
+    confirmText: 'Reject Song',
+    confirmIcon: 'x',
+    onConfirm: async () => {
+      try {
+        await window.API.admin.approveSong(songId, 'rejected');
+        const song = DB.Songs.find(songId);
+        if (song && song.artistId) {
+          DB.Notifications.add(song.artistId, {
+            type: 'approvals',
+            title: 'Song rejected',
+            body: `Your song "${song.title}" was not approved. You can still reach out to support for more details.`,
+            refId: songId,
+          });
+          if (typeof refreshNotifBadge === 'function') refreshNotifBadge();
+        }
+        showToast(`<i data-lucide="x-circle" style="width:16px;height:16px;vertical-align:middle"></i> Song rejected`, 'error');
+        renderAdminDashboard();
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    },
+  });
 }
 
-async function adminDeleteSong(songId, songTitle) {
-  if (!confirm(`Delete "${songTitle}"? This cannot be undone.`)) return;
-  if (!confirm(`Are you absolutely sure? The song will be permanently removed.`)) return;
-  try {
-    await window.API.admin.deleteSong(songId);
-    showToast(`<i data-lucide="trash-2" style="width:16px;height:16px;vertical-align:middle"></i> "${songTitle}" deleted`, 'success');
-    renderAdminDashboard();
-  } catch (err) {
-    showToast(err.message, 'error');
-  }
+function adminDeleteSong(songId, songTitle) {
+  openConfirm({
+    title: 'Delete Song',
+    icon: 'trash-2',
+    message: `Delete "<strong>${escHtml(songTitle || 'this song')}</strong>"? This will permanently remove the song from the platform.`,
+    requireWord: 'DELETE',
+    confirmText: 'Delete Song',
+    confirmIcon: 'trash-2',
+    onConfirm: async () => {
+      try {
+        await window.API.admin.deleteSong(songId);
+        showToast(`<i data-lucide="trash-2" style="width:16px;height:16px;vertical-align:middle"></i> "${songTitle}" deleted`, 'success');
+        renderAdminDashboard();
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    },
+  });
 }
 
 function toggleAdminDropdown(e, btn) {
